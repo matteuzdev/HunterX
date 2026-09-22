@@ -179,6 +179,9 @@ export function HunterXApp() {
     setFavorites(parse(localStorage.getItem("hunterx-favorites"), {}));
     setHistory(parse(localStorage.getItem("hunterx-history"), []));
     setSearches(Number(localStorage.getItem("hunterx-search-count") || 7));
+    setLeads(parse(localStorage.getItem("hunterx-current-leads"), []));
+    setKeyword(localStorage.getItem("hunterx-current-keyword") || "Clínica odontológica");
+    setCity(localStorage.getItem("hunterx-current-city") || "Campina Grande, PB");
     fetch("/api/health", { cache: "no-store" }).then((r) => r.json()).then(setRuntime).catch(() => null);
   }, []);
 
@@ -190,6 +193,15 @@ export function HunterXApp() {
     localStorage.setItem("hunterx-history", JSON.stringify(history));
     localStorage.setItem("hunterx-search-count", String(searches));
   }, [history, searches]);
+
+  useEffect(() => {
+    localStorage.setItem("hunterx-current-leads", JSON.stringify(leads));
+  }, [leads]);
+
+  useEffect(() => {
+    localStorage.setItem("hunterx-current-keyword", keyword);
+    localStorage.setItem("hunterx-current-city", city);
+  }, [keyword, city]);
 
   const visibleLeads = useMemo(() => {
     const q = query.toLowerCase().trim();
