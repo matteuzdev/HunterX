@@ -1,5 +1,5 @@
 -- HunterX search persistence
--- Safe per-user storage. Anonymous Supabase Auth users use the authenticated role.
+-- Anonymous Supabase Auth users assume the authenticated role.
 
 create table if not exists public.search_snapshots (
   id uuid primary key default gen_random_uuid(),
@@ -24,18 +24,18 @@ create policy "Users can read own search snapshots"
 on public.search_snapshots
 for select
 to authenticated
-using (auth.uid() = user_id);
+using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 drop policy if exists "Users can insert own search snapshots" on public.search_snapshots;
 create policy "Users can insert own search snapshots"
 on public.search_snapshots
 for insert
 to authenticated
-with check (auth.uid() = user_id);
+with check ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 
 drop policy if exists "Users can delete own search snapshots" on public.search_snapshots;
 create policy "Users can delete own search snapshots"
 on public.search_snapshots
 for delete
 to authenticated
-using (auth.uid() = user_id);
+using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
