@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#155eef" />
+  <title>HunterX — Lead Intelligence</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><div class="brand-mark">H</div><div><strong>HunterX</strong><span>Lead Intelligence</span></div></div>
+    <nav id="mainNav">
+      <button class="nav-item active" data-view="dashboard"><span class="nav-icon">⌂</span>Visão geral</button>
+      <button class="nav-item" data-view="search"><span class="nav-icon">⌕</span>Buscar leads</button>
+      <button class="nav-item" data-view="history"><span class="nav-icon">↻</span>Histórico</button>
+      <button class="nav-item" data-view="favorites"><span class="nav-icon">☆</span>Favoritos <span class="nav-count" id="favCount">0</span></button>
+      <button class="nav-item" data-view="messages"><span class="nav-icon">◫</span>Mensagens</button>
+      <div class="nav-separator"></div>
+      <button class="nav-item" data-view="settings"><span class="nav-icon">⚙</span>Configurações</button>
+    </nav>
+    <div class="plan-box">
+      <div class="eyebrow">PLANO PRO</div>
+      <div class="plan-line"><span>Buscas</span><strong id="planSearches">7 / 100</strong></div>
+      <div class="progress"><i id="planBar" style="width:7%"></i></div>
+      <small>Renova em 12 dias</small>
+      <button class="ghost-small">Gerenciar plano</button>
+    </div>
+    <div class="profile"><div class="avatar">HM</div><div><strong>Seu workspace</strong><span>Administrador</span></div><button>⋮</button></div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div><button class="mobile-menu" id="mobileMenu">☰</button><span class="breadcrumb" id="breadcrumb">Visão geral</span></div>
+      <div class="top-actions"><span class="provider-dot" id="providerDot"></span><span id="providerLabel">Verificando dados…</span><button class="icon-btn" title="Notificações">◌</button><button class="primary compact" data-go-search>+ Nova busca</button></div>
+    </header>
+
+    <section class="view active" id="view-dashboard">
+      <div class="page-head"><div><p class="eyebrow blue">CENTRAL DE PROSPECÇÃO</p><h1>Visão geral</h1><p>Encontre onde existe dor digital e transforme em oportunidade comercial.</p></div><button class="primary" data-go-search>Buscar novos leads <span>→</span></button></div>
+      <div class="metric-grid">
+        <article class="metric"><div class="metric-top"><span class="metric-icon">⌕</span><span class="delta up">+18%</span></div><strong id="kpiSearches">7</strong><span>Buscas este mês</span><small>de 100 disponíveis</small></article>
+        <article class="metric"><div class="metric-top"><span class="metric-icon">◎</span><span class="delta up">+42</span></div><strong id="kpiLeads">128</strong><span>Leads encontrados</span><small>20 por busca em média</small></article>
+        <article class="metric"><div class="metric-top"><span class="metric-icon">⚡</span><span class="delta hot">alta intenção</span></div><strong id="kpiHot">76</strong><span>Oportunidades quentes</span><small>score ≥ 80</small></article>
+        <article class="metric"><div class="metric-top"><span class="metric-icon">✓</span><span class="delta neutral">31%</span></div><strong id="kpiContacted">39</strong><span>Leads abordados</span><small>acompanhe seu pipeline</small></article>
+      </div>
+
+      <div class="dashboard-grid">
+        <article class="panel opportunity-panel">
+          <div class="panel-head"><div><h2>Oportunidades para atacar agora</h2><p>Gaps com maior potencial para oferta de serviços.</p></div><button class="text-btn" data-go-search>Ver leads →</button></div>
+          <div class="opp-list">
+            <div class="opp"><span class="opp-icon danger">⌘</span><div><strong>Empresas sem website</strong><p>Problema visível e proposta fácil de demonstrar.</p></div><b>42</b></div>
+            <div class="opp"><span class="opp-icon warning">@</span><div><strong>Presença digital fraca</strong><p>Sem redes ou sinais claros de aquisição online.</p></div><b>31</b></div>
+            <div class="opp"><span class="opp-icon success">⚡</span><div><strong>Score alto + telefone</strong><p>Priorize quem tem dor e canal de contato imediato.</p></div><b>27</b></div>
+          </div>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><div><h2>Distribuição de oportunidades</h2><p>Qualidade da base atual.</p></div></div>
+          <div class="donut-wrap"><div class="donut"><div><strong>128</strong><span>leads</span></div></div><div class="legend"><span><i class="lg-hot"></i>Quentes <b>59%</b></span><span><i class="lg-warm"></i>Mornos <b>28%</b></span><span><i class="lg-cold"></i>Frios <b>13%</b></span></div></div>
+        </article>
+      </div>
+
+      <div class="dashboard-grid lower">
+        <article class="panel"><div class="panel-head"><div><h2>Buscas recentes</h2><p>Retome uma prospecção em um clique.</p></div><button class="text-btn" data-view-link="history">Ver histórico</button></div><div id="recentSearches" class="recent-list"></div></article>
+        <article class="panel"><div class="panel-head"><div><h2>Leads recentes</h2><p>Melhores oportunidades descobertas.</p></div></div><div id="recentLeads" class="mini-leads"></div></article>
+      </div>
+    </section>
+
+    <section class="view" id="view-search">
+      <div class="page-head search-head"><div><p class="eyebrow blue">BUSCA INTELIGENTE</p><h1>Buscar leads</h1><p>Informe o tipo de negócio e a cidade. O HunterX encontra, enriquece e prioriza.</p></div></div>
+      <article class="search-card">
+        <div class="search-fields">
+          <label><span>PALAVRA-CHAVE</span><div class="input-wrap"><i>⌕</i><input id="keywordInput" value="Clínica odontológica" placeholder="Ex.: barbearia, academia, clínica..." /></div></label>
+          <label><span>CIDADE</span><div class="input-wrap"><i>⌖</i><input id="cityInput" value="Campina Grande, PB" placeholder="Cidade, UF" /></div></label>
+          <button class="primary search-btn" id="searchBtn"><span>Buscar leads</span><b>→</b></button>
+        </div>
+        <div class="suggestions"><span>Sugestões:</span><button>Restaurante</button><button>Academia</button><button>Advogado</button><button>Clínica</button><button>Oficina</button></div>
+      </article>
+
+      <div id="searchProgress" class="search-progress hidden"><div class="progress-label"><span><i class="spinner"></i><b id="progressTitle">Buscando empresas…</b></span><span id="progressPct">0%</span></div><div class="progress thick"><i id="progressBar" style="width:0%"></i></div><small id="progressText">Consultando fontes e normalizando resultados.</small></div>
+
+      <div id="resultsBlock" class="hidden">
+        <div class="results-heading"><div><p class="eyebrow blue">RESULTADOS</p><h2 id="resultsTitle">Oportunidades encontradas</h2><p id="resultsLocation">—</p></div><div class="result-actions"><button class="secondary" id="saveSearchBtn">☆ Salvar busca</button><button class="secondary" id="exportBtn">⇩ Exportar todos</button></div></div>
+        <div class="summary-grid">
+          <article><span>Total</span><strong id="sumTotal">0</strong><small>empresas encontradas</small></article>
+          <article><span>Com website</span><strong id="sumWebsite">0</strong><small>presença própria</small></article>
+          <article><span>Com e-mail</span><strong id="sumEmail">0</strong><small>contato encontrado</small></article>
+          <article><span>Com telefone</span><strong id="sumPhone">0</strong><small>canal direto</small></article>
+          <article class="hot-card"><span>Quentes</span><strong id="sumHot">0</strong><small>score ≥ 80</small></article>
+        </div>
+
+        <article class="table-panel">
+          <div class="table-toolbar">
+            <div class="search-table"><span>⌕</span><input id="tableSearch" placeholder="Buscar nesta lista…" /></div>
+            <div class="toolbar-right"><select id="opportunityFilter"><option value="all">Todas as oportunidades</option><option value="hot">Quentes</option><option value="warm">Mornas</option><option value="cold">Frias</option><option value="no-site">Sem website</option></select><select id="sortSelect"><option value="score">Melhores oportunidades</option><option value="rating">Melhor avaliação</option><option value="reviews">Mais avaliações</option><option value="name">Nome A–Z</option></select></div>
+          </div>
+          <div class="table-scroll"><table><thead><tr><th>EMPRESA</th><th>TELEFONE</th><th>WEBSITE</th><th>AVALIAÇÃO</th><th>SCORE</th><th>STATUS</th><th>PRIORIDADE</th><th>AÇÕES</th></tr></thead><tbody id="leadTable"></tbody></table></div>
+          <div class="table-footer"><span id="tableCount">0 leads</span><span>Score = gap digital + sinais de operação + contato</span></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="view" id="view-history"><div class="page-head"><div><p class="eyebrow blue">MEMÓRIA DE PROSPECÇÃO</p><h1>Histórico</h1><p>Todas as buscas realizadas neste navegador.</p></div></div><article class="panel"><div id="historyList" class="history-list"></div></article></section>
+    <section class="view" id="view-favorites"><div class="page-head"><div><p class="eyebrow blue">CARTEIRA</p><h1>Favoritos</h1><p>Leads separados para abordagem e follow-up.</p></div></div><article class="table-panel"><div class="table-scroll"><table><thead><tr><th>EMPRESA</th><th>CONTATO</th><th>OPORTUNIDADE</th><th>SCORE</th><th>AÇÕES</th></tr></thead><tbody id="favoriteTable"></tbody></table></div></article></section>
+    <section class="view" id="view-messages"><div class="page-head"><div><p class="eyebrow blue">ABORDAGEM</p><h1>Mensagens</h1><p>Templates orientados pelo gap encontrado no lead.</p></div></div><div class="template-grid"><article class="template"><span>SEM WEBSITE</span><h3>Abordagem com demonstração</h3><p>“Oi, [nome]. Encontrei sua empresa no Google e percebi uma oportunidade simples de melhorar sua presença online...”</p><button class="secondary">Usar template</button></article><article class="template"><span>PRESENÇA FRACA</span><h3>Diagnóstico local</h3><p>“Analisei rapidamente como sua empresa aparece quando alguém procura [serviço] em [cidade]...”</p><button class="secondary">Usar template</button></article><article class="template"><span>REPUTAÇÃO FORTE</span><h3>Converter reputação em vendas</h3><p>“Vocês já têm ótimas avaliações. O ponto que notei é que essa reputação ainda pode trabalhar melhor para gerar pedidos...”</p><button class="secondary">Usar template</button></article></div></section>
+    <section class="view" id="view-settings"><div class="page-head"><div><p class="eyebrow blue">SISTEMA</p><h1>Configurações</h1><p>Estado do motor de dados e parâmetros do score.</p></div></div><div class="settings-grid"><article class="panel"><h2>Motor de dados</h2><div class="setting-row"><div><strong>Provider</strong><span id="settingsProvider">—</span></div><span class="status-pill" id="settingsStatus">—</span></div><div class="setting-row"><div><strong>Limite por busca</strong><span>20 empresas</span></div><b>20</b></div></article><article class="panel"><h2>Opportunity Engine</h2><div class="weights"><span>Sem website <b>+35</b></span><span>Sem redes <b>+15</b></span><span>Sem e-mail <b>+10</b></span><span>Telefone <b>+15</b></span><span>Reputação <b>até +20</b></span><span>Ativo <b>+5</b></span></div></article></div></section>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="modal-backdrop hidden" id="modalBackdrop"><div class="modal" id="leadModal"><button class="modal-close" id="modalClose">×</button><div id="modalContent"></div></div></div>
+<script src="/app.js"></script>
+</body>
+</html>

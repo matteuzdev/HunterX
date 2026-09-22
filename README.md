@@ -1,18 +1,69 @@
 # HunterX
 
-HunterX é uma plataforma de inteligência comercial para encontrar negócios locais, detectar gaps de presença digital e priorizar oportunidades de prospecção.
+HunterX é uma plataforma de inteligência comercial para descobrir negócios locais, detectar gaps de presença digital e priorizar oportunidades de prospecção.
 
-## Estado atual
+## O que já funciona
 
-A base funcional inclui busca por nicho + cidade, até 20 leads por busca, Opportunity Score 0–100, classificação Quente/Morno/Frio, filtros, favoritos, histórico, WhatsApp contextual, exportação CSV, enriquecimento de website, modo demo e provider real.
+- Busca por palavra-chave + cidade
+- Até 20 leads por busca
+- Opportunity Score de 0 a 100
+- Classificação Quente / Morno / Frio
+- Prioridade Alta / Média / Baixa
+- Filtros e ordenação
+- Favoritos e histórico local
+- Abordagem por WhatsApp com contexto
+- Exportação CSV
+- Enriquecimento de website
+- Modo demo sem credenciais
+- Provider real preparado via Outscraper
+- APIs serverless prontas para Vercel
 
-## Stack inicial
+## Stack
 
-- Frontend: HTML/CSS/JavaScript sem framework
-- Runtime: Node.js 20+
-- API: funções serverless
-- Deploy prioritário: Vercel
-- Provider de dados inicial: mock / Outscraper
-- Arquitetura preparada para persistência, autenticação, créditos e jobs de enrichment
+- Frontend: HTML, CSS e JavaScript
+- Backend: Node.js / funções serverless
+- Deploy: Vercel
+- Dados: provider desacoplado
+- Persistência atual: localStorage no frontend
+- Próxima camada: Postgres/Supabase + autenticação + créditos + jobs
 
-> Este README será expandido no mesmo commit de fundação.
+## Rodar localmente
+
+```bash
+npm run dev
+```
+
+Abra `http://localhost:3000`.
+
+## Dados reais
+
+Copie `.env.example` para `.env` e configure:
+
+```env
+DATA_PROVIDER=live
+OUTSCRAPER_API_KEY=sua_chave
+```
+
+Sem essas variáveis o HunterX roda em modo demonstração.
+
+## APIs
+
+- `GET /api/health`
+- `POST /api/search`
+- `POST /api/enrich`
+
+## Estrutura
+
+```text
+api/        funções serverless
+lib/        motor de dados e Opportunity Engine
+docs/       arquitetura, pesquisa e roadmap
+index.html  aplicação
+app.js      comportamento da interface
+styles.css  design system
+server.mjs  servidor local
+```
+
+## Direção
+
+O objetivo não é copiar uma interface. É construir um motor próprio de descoberta, enriquecimento, priorização e operação comercial.
