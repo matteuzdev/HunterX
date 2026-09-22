@@ -20,11 +20,16 @@ function clampText(value: unknown, max = 160) {
 }
 
 export function getRuntimeStatus() {
+  const liveReady =
+    provider === "apify" ? Boolean(process.env.APIFY_TOKEN) :
+    provider === "outscraper" ? Boolean(process.env.OUTSCRAPER_API_KEY) :
+    false;
+
   return {
     ok: true,
     provider,
-    liveReady: Boolean(process.env.OUTSCRAPER_API_KEY),
-    version: "0.3.0",
+    liveReady,
+    version: "0.4.0",
   };
 }
 
@@ -124,6 +129,93 @@ function mockLeads(keyword: string, city: string): Lead[] {
   });
 }
 
+
+function mapApify(item: Record<string, unknown>, keyword: string, city: string, index: number): Lead {
+  const location = (item.location || {}) as Record<string, unknown>;
+  const contacts = (item.contacts || item.contactDetails || {}) as Record<string, unknown>;
+  const contactEmails = Array.isArray(contacts.emails) ? contacts.emails : [];
+  const itemEmails = Array.isArray(item.emails) ? item.emails : [];
+  const email = String(itemEmails[0] || contactEmails[0] || item.email || contacts.email || "");
+  const website = normalizeUrl(String(item.website || ""));
+  const phone = digits(String(item.phoneUnformatted || item.phone || ""));
+  const socialLinks = Array.isArray(item.socialMedia) ? item.socialMedia : [];
+  const socialText = socialLinks.map(value => String(value)).join(" ");
+
+  const findSocial = (domain: string) => {
+    const direct = socialLinks.find(value => String(value).includes(domain));
+    if (direct) return String(direct);
+    const key = domain.split(".")[0];
+    return String(item[key] || contacts[key] || (socialText.includes(domain) ? socialText : ""));
+  };
+
+  const permanentlyClosed = Boolean(item.permanentlyClosed);
+  const temporarilyClosed = Boolean(item.temporarilyClosed);
+  const base = {
+    id: String(item.placeId || item.cid || `apify-${index}-${seedFrom(String(item.title || "") + String(item.address || ""))}`),
+    name: String(item.title || item.name || "Empresa"),
+    category: String(item.categoryName || (Array.isArray(item.categories) ? item.categories[0] : "") || keyword),
+    city: String(item.city || city),
+    address: String(item.address || ""),
+    phone,
+    website,
+    email,
+    rating: Number(item.totalScore || item.rating || 0),
+    reviews: Number(item.reviewsCount || item.reviews || 0),
+    businessStatus: permanentlyClosed ? "CLOSED_PERMANENTLY" : temporarilyClosed ? "CLOSED_TEMPORARILY" : "OPERATIONAL",
+    socials: {
+      instagram: findSocial("instagram.com"),
+      facebook: findSocial("facebook.com"),
+      linkedin: findSocial("linkedin.com"),
+      tiktok: findSocial("tiktok.com"),
+      whatsapp: findSocial("wa.me") || findSocial("whatsapp.com"),
+    },
+    latitude: Number(location.lat || item.latitude || 0) || undefined,
+    longitude: Number(location.lng || item.longitude || 0) || undefined,
+    source: "apify" as const,
+  };
+  return { ...base, ...scoreLead(base) };
+}
+
+async function searchApify(keyword: string, city: string): Promise<Lead[]> {
+  const token = process.env.APIFY_TOKEN;
+  if (!token) throw new Error("APIFY_TOKEN não configurado");
+
+  const response = await fetch(
+    "https://api.apify.com/v2/actors/compass~crawler-google-places/run-sync-get-dataset-items?clean=true",
+    {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        searchStringsArray: [keyword],
+        locationQuery: `${city}, Brasil`,
+        maxCrawledPlacesPerSearch: 20,
+        language: "pt-BR",
+        skipClosedPlaces: true,
+        scrapePlaceDetailPage: false,
+        scrapeContacts: false,
+        maxReviews: 0,
+      }),
+      signal: AbortSignal.timeout(55000),
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`Apify HTTP ${response.status}${body ? `: ${body.slice(0, 180)}` : ""}`);
+  }
+
+  const payload = await response.json();
+  if (!Array.isArray(payload)) throw new Error("Resposta inesperada da Apify");
+
+  return payload.slice(0, 20).map((item, index) =>
+    mapApify(item as Record<string, unknown>, keyword, city, index),
+  );
+}
+
 function flattenOutscraper(payload: unknown): Record<string, unknown>[] {
   const maybe = (payload as { data?: unknown })?.data ?? payload;
   if (!Array.isArray(maybe)) return [];
@@ -188,11 +280,15 @@ export async function searchLeads(rawKeyword: unknown, rawCity: unknown): Promis
   const city = clampText(rawCity, 120);
   if (!keyword || !city) throw new Error("Informe palavra-chave e cidade.");
 
-  const leads = provider === "live" ? await searchOutscraper(keyword, city) : mockLeads(keyword, city);
+  const leads =
+    provider === "apify" ? await searchApify(keyword, city) :
+    provider === "outscraper" || provider === "live" ? await searchOutscraper(keyword, city) :
+    mockLeads(keyword, city);
+
   return {
     query: { keyword, city },
     count: leads.length,
-    mode: provider === "live" ? "live" : "mock",
+    mode: provider === "mock" ? "mock" : "live",
     leads,
   };
 }
