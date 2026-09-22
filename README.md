@@ -1,69 +1,75 @@
 # HunterX
 
-HunterX é uma plataforma de inteligência comercial para descobrir negócios locais, detectar gaps de presença digital e priorizar oportunidades de prospecção.
-
-## O que já funciona
-
-- Busca por palavra-chave + cidade
-- Até 20 leads por busca
-- Opportunity Score de 0 a 100
-- Classificação Quente / Morno / Frio
-- Prioridade Alta / Média / Baixa
-- Filtros e ordenação
-- Favoritos e histórico local
-- Abordagem por WhatsApp com contexto
-- Exportação CSV
-- Enriquecimento de website
-- Modo demo sem credenciais
-- Provider real preparado via Outscraper
-- APIs serverless prontas para Vercel
+HunterX é um SaaS de inteligência comercial para descobrir negócios locais, identificar gaps de presença digital e priorizar oportunidades de prospecção.
 
 ## Stack
 
-- Frontend: HTML, CSS e JavaScript
-- Backend: Node.js / funções serverless
-- Deploy: Vercel
-- Dados: provider desacoplado
-- Persistência atual: localStorage no frontend
-- Próxima camada: Postgres/Supabase + autenticação + créditos + jobs
+- Next.js 16 — App Router
+- React 19
+- TypeScript
+- Tailwind CSS 4
+- componentes no padrão shadcn/ui
+- Route Handlers do Next.js
+- Supabase SSR preparado para autenticação/persistência
+- Vercel
 
-## Rodar localmente
+## O que já funciona
+
+- Busca por nicho + cidade
+- até 20 leads por busca
+- Opportunity Score 0–100
+- Quente / Morno / Frio
+- prioridade Alta / Média / Baixa
+- filtros
+- favoritos
+- histórico
+- WhatsApp contextual
+- exportação CSV
+- modo demo
+- provider Outscraper preparado
+- enrichment de website
+- dashboard SaaS responsivo
+
+## Rodar
 
 ```bash
+npm install
 npm run dev
 ```
 
-Abra `http://localhost:3000`.
-
 ## Dados reais
-
-Copie `.env.example` para `.env` e configure:
 
 ```env
 DATA_PROVIDER=live
 OUTSCRAPER_API_KEY=sua_chave
 ```
 
-Sem essas variáveis o HunterX roda em modo demonstração.
+## Supabase
 
-## APIs
+Quando habilitarmos autenticação e persistência:
 
-- `GET /api/health`
-- `POST /api/search`
-- `POST /api/enrich`
-
-## Estrutura
-
-```text
-api/        funções serverless
-lib/        motor de dados e Opportunity Engine
-docs/       arquitetura, pesquisa e roadmap
-index.html  aplicação
-app.js      servidor Node da aplicação\nclient.js   comportamento da interface
-styles.css  design system
-
+```env
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 ```
 
-## Direção
+## Arquitetura
 
-O objetivo não é copiar uma interface. É construir um motor próprio de descoberta, enriquecimento, priorização e operação comercial.
+```text
+app/
+  api/
+  globals.css
+  layout.tsx
+  page.tsx
+components/
+  hunterx-app.tsx
+  lead-table.tsx
+  metric-card.tsx
+  sidebar.tsx
+  ui/
+lib/
+  hunter/
+  supabase/
+```
+
+A interface antiga em HTML/CSS/JS puro foi substituída. O produto agora está estruturado para evoluir como SaaS.

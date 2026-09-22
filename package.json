@@ -1,12 +1,28 @@
 {
-  "name": "hunterx-lead-intelligence",
-  "version": "0.2.2",
+  "name": "hunterx",
+  "version": "0.3.0",
   "private": true,
-  "type": "module",
   "scripts": {
-    "dev": "node app.js",
-    "start": "node app.js",
-    "check": "node --check app.js && node --check client.js && node --check lib/engine.js && node --check lib/http.js && node --check api/health.js && node --check api/search.js && node --check api/enrich.js"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/ssr": "0.12.7",
+    "@supabase/supabase-js": "2.116.0",
+    "lucide-react": "1.47.0",
+    "next": "16.3.5",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "tailwindcss": "4.3.3",
+    "typescript": "^5.9.0"
   },
   "engines": {
     "node": "22.x"
