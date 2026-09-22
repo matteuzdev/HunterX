@@ -117,7 +117,7 @@ function mockLeads(keyword: string, city: string): Lead[] {
       rating,
       reviews,
       businessStatus: "OPERATIONAL",
-      socials: hasSocial ? { instagram: `https://instagram.com/${slug.replaceAll("-", "")}` } : {},
+      socials: (hasSocial ? { instagram: `https://instagram.com/${slug.replaceAll("-", "")}` } : {}) as Record<string, string>,
       source: "mock" as const,
     };
     return { ...base, ...scoreLead(base) };
