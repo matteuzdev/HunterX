@@ -254,7 +254,7 @@ export function HunterXApp() {
           <div className="flex items-center gap-2">
             <span className="hidden items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-[10px] font-semibold text-slate-500 sm:flex">
               <span className={"size-1.5 rounded-full " + (runtime?.ok ? "bg-emerald-500" : "bg-slate-300")} />
-              {runtime?.provider === "live" ? "Dados reais" : "Modo demo"}
+              {runtime?.provider && runtime.provider !== "mock" ? `Dados reais • ${runtime.provider}` : "Modo demo"}
             </span>
             <Button size="sm" onClick={() => setView("search")}><Search className="size-3.5" /> Nova busca</Button>
           </div>
@@ -394,7 +394,7 @@ export function HunterXApp() {
                 <Card className="p-5">
                   <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-blue-50 text-blue-600"><Activity className="size-4" /></span><div><h2 className="text-sm font-bold">Motor de dados</h2><p className="text-xs text-slate-400">Status do backend.</p></div></div>
                   <div className="mt-5 divide-y divide-slate-100 text-xs">
-                    <div className="flex justify-between py-3"><span className="text-slate-500">Provider</span><strong>{runtime?.provider === "live" ? "Outscraper" : "Mock / demo"}</strong></div>
+                    <div className="flex justify-between py-3"><span className="text-slate-500">Provider</span><strong>{runtime?.provider === "apify" ? "Apify • Google Maps" : runtime?.provider === "outscraper" || runtime?.provider === "live" ? "Outscraper" : "Mock / demo"}</strong></div>
                     <div className="flex justify-between py-3"><span className="text-slate-500">Status</span><Badge className="bg-emerald-50 text-emerald-700">{runtime?.ok ? "Online" : "Verificando"}</Badge></div>
                     <div className="flex justify-between py-3"><span className="text-slate-500">Versão</span><strong>{runtime?.version || "0.3.0"}</strong></div>
                   </div>
