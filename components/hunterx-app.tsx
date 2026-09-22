@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { createElement, useEffect, useMemo, useState } from "react";
 import {
   Activity, ArrowRight, Building2, Download, Filter, Flame, Globe2,
   Mail, Menu, MessageSquareText, Phone, Search, ShieldCheck, Sparkles,
   Target, UsersRound, WandSparkles
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import type { HistoryItem, Lead } from "@/lib/hunter/types";
 import { Sidebar, type ViewName } from "@/components/sidebar";
 import { MetricCard } from "@/components/metric-card";
@@ -108,7 +109,7 @@ function Dashboard({
             ].map(([Icon, title, text, value, color]) => (
               <div key={String(title)} className="grid grid-cols-[40px_1fr_auto] items-center gap-3 py-4">
                 <span className={"grid size-10 place-items-center rounded-xl " + color}>
-                  <Icon className="size-4" />
+                  {createElement(Icon as LucideIcon, { className: "size-4" })}
                 </span>
                 <span>
                   <strong className="block text-xs text-slate-800">{String(title)}</strong>
@@ -306,7 +307,7 @@ export function HunterXApp() {
                       ["Quentes", leads.filter((l) => l.score >= 80).length, Flame, "bg-rose-50 text-rose-600"],
                     ].map(([label,value,Icon,color]) => (
                       <Card key={String(label)} className="flex items-center gap-3 p-4">
-                        <span className={"grid size-9 place-items-center rounded-xl " + color}><Icon className="size-4" /></span>
+                        <span className={"grid size-9 place-items-center rounded-xl " + color}>{createElement(Icon as LucideIcon, { className: "size-4" })}</span>
                         <span><strong className="block text-xl font-black tracking-tight">{String(value)}</strong><small className="text-[10px] font-semibold text-slate-400">{String(label)}</small></span>
                       </Card>
                     ))}
