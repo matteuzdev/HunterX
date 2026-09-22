@@ -174,6 +174,7 @@ export function HunterXApp() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [searchCache, setSearchCache] = useState<Record<string, Lead[]>>({});
 
   useEffect(() => {
     setFavorites(parse(localStorage.getItem("hunterx-favorites"), {}));
@@ -182,6 +183,7 @@ export function HunterXApp() {
     setLeads(parse(localStorage.getItem("hunterx-current-leads"), []));
     setKeyword(localStorage.getItem("hunterx-current-keyword") || "Clínica odontológica");
     setCity(localStorage.getItem("hunterx-current-city") || "Campina Grande, PB");
+    setSearchCache(parse(localStorage.getItem("hunterx-search-cache"), {}));
     fetch("/api/health", { cache: "no-store" }).then((r) => r.json()).then(setRuntime).catch(() => null);
   }, []);
 
@@ -203,6 +205,10 @@ export function HunterXApp() {
     localStorage.setItem("hunterx-current-city", city);
   }, [keyword, city]);
 
+  useEffect(() => {
+    localStorage.setItem("hunterx-search-cache", JSON.stringify(searchCache));
+  }, [searchCache]);
+
   const visibleLeads = useMemo(() => {
     const q = query.toLowerCase().trim();
     return [...leads]
@@ -223,7 +229,13 @@ export function HunterXApp() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Falha na busca");
-      setLeads(data.leads || []);
+      const freshLeads = (data.leads || []) as Lead[];
+      setLeads(freshLeads);
+      const cacheKey = `${keyword.trim().toLowerCase()}::${city.trim().toLowerCase()}`;
+      setSearchCache((current) => {
+        const entries = Object.entries({ ...current, [cacheKey]: freshLeads });
+        return Object.fromEntries(entries.slice(-30));
+      });
       setSearches((value) => value + 1);
       setHistory((current) => [
         { keyword, city, count: data.leads?.length || 0, mode: data.mode, at: new Date().toISOString() },
@@ -244,6 +256,15 @@ export function HunterXApp() {
       else next[lead.id] = lead;
       return next;
     });
+  }
+
+  function reopenHistory(item: HistoryItem) {
+    setKeyword(item.keyword);
+    setCity(item.city);
+    const cacheKey = `${item.keyword.trim().toLowerCase()}::${item.city.trim().toLowerCase()}`;
+    const cached = searchCache[cacheKey];
+    if (cached?.length) setLeads(cached);
+    setView("search");
   }
 
   const title: Record<ViewName, string> = {
@@ -364,7 +385,7 @@ export function HunterXApp() {
               <div><p className="mb-2 text-[10px] font-bold uppercase tracking-[.16em] text-blue-600">Memória comercial</p><h1 className="text-3xl font-black tracking-[-.045em]">Histórico</h1></div>
               <Card className="divide-y divide-slate-100 p-2">
                 {history.length ? history.map((item,index) => (
-                  <button key={item.keyword + index} onClick={() => { setKeyword(item.keyword); setCity(item.city); setView("search"); }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left hover:bg-slate-50">
+                  <button key={item.keyword + index} onClick={() => reopenHistory(item)} className="flex w-full items-center gap-3 rounded-xl p-3 text-left hover:bg-slate-50">
                     <span className="grid size-10 place-items-center rounded-xl bg-blue-50 text-blue-600"><Search className="size-4" /></span>
                     <span className="min-w-0 flex-1"><strong className="block truncate text-xs">{item.keyword}</strong><small className="mt-1 block text-[10px] text-slate-400">{item.city} • {new Date(item.at).toLocaleString("pt-BR")}</small></span>
                     <Badge className="bg-slate-100 text-slate-600">{item.count} leads</Badge>
