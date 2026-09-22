@@ -25,11 +25,17 @@ export function getRuntimeStatus() {
     provider === "outscraper" ? Boolean(process.env.OUTSCRAPER_API_KEY) :
     false;
 
+  const supabaseReady = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  );
+
   return {
     ok: true,
     provider,
     liveReady,
-    version: "0.4.0",
+    supabaseReady,
+    version: "0.4.1",
   };
 }
 
