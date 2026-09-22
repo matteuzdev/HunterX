@@ -18,6 +18,12 @@ function getApifyEnvName() {
   return "";
 }
 
+function getApifyEnvKeys() {
+  return Object.keys(process.env)
+    .filter((key) => key.toUpperCase().includes("APIFY"))
+    .sort();
+}
+
 function digits(value = "") {
   return String(value).replace(/\D/g, "");
 }
@@ -52,7 +58,8 @@ export function getRuntimeStatus() {
     liveReady,
     supabaseReady,
     apifyEnv: provider === "apify" ? getApifyEnvName() : "",
-    version: "0.4.2",
+    apifyEnvKeys: provider === "apify" ? getApifyEnvKeys() : [],
+    version: "0.4.3",
   };
 }
 
