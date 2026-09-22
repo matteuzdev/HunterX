@@ -107,36 +107,37 @@ export function LeadDetailDrawer({
   }, [lead, enrichment]);
 
   if (!lead || !effective) return null;
+  const currentLead = effective;
 
-  const hasSocial = Object.values(effective.socials || {}).some(Boolean);
-  const mapsUrl = effective.latitude && effective.longitude
-    ? `https://www.google.com/maps/search/?api=1&query=${effective.latitude},${effective.longitude}`
-    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([effective.name, effective.address].filter(Boolean).join(" "))}`;
+  const hasSocial = Object.values(currentLead.socials || {}).some(Boolean);
+  const mapsUrl = currentLead.latitude && currentLead.longitude
+    ? `https://www.google.com/maps/search/?api=1&query=${currentLead.latitude},${currentLead.longitude}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([currentLead.name, currentLead.address].filter(Boolean).join(" "))}`;
 
   const insights = [
-    ["Website próprio", Boolean(effective.website), effective.website ? "Encontrado" : "Ausente"],
+    ["Website próprio", Boolean(currentLead.website), currentLead.website ? "Encontrado" : "Ausente"],
     ["Redes sociais", hasSocial, hasSocial ? "Encontradas" : "Não detectadas"],
-    ["E-mail público", Boolean(effective.email), effective.email || "Não detectado"],
-    ["Telefone", Boolean(effective.phone), effective.phone || "Não detectado"],
+    ["E-mail público", Boolean(currentLead.email), currentLead.email || "Não detectado"],
+    ["Telefone", Boolean(currentLead.phone), currentLead.phone || "Não detectado"],
   ] as const;
 
-  const demo = buildDemoConcept(effective);
+  const demo = buildDemoConcept(currentLead);
 
   async function copyApproach() {
-    await navigator.clipboard.writeText(buildApproach(effective));
+    await navigator.clipboard.writeText(buildApproach(currentLead));
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1800);
   }
 
   async function enrich() {
-    if (!effective.website || enriching) return;
+    if (!currentLead.website || enriching) return;
     setEnriching(true);
     setEnrichError("");
     try {
       const response = await fetch("/api/enrich", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ website: effective.website, lead: effective }),
+        body: JSON.stringify({ website: currentLead.website, lead: currentLead }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Falha no enrichment");
@@ -160,14 +161,14 @@ export function LeadDetailDrawer({
         <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-5">
           <div className="min-w-0">
             <div className="mb-2 flex flex-wrap gap-1.5">
-              <Badge className={effective.temperature === "Quente" ? "bg-rose-50 text-rose-700" : effective.temperature === "Morno" ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-600"}>
-                {effective.temperature}
+              <Badge className={currentLead.temperature === "Quente" ? "bg-rose-50 text-rose-700" : currentLead.temperature === "Morno" ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-600"}>
+                {currentLead.temperature}
               </Badge>
-              <Badge className="bg-blue-50 text-blue-700">{effective.priority}</Badge>
-              <Badge className="bg-slate-100 text-slate-600">{effective.source}</Badge>
+              <Badge className="bg-blue-50 text-blue-700">{currentLead.priority}</Badge>
+              <Badge className="bg-slate-100 text-slate-600">{currentLead.source}</Badge>
             </div>
-            <h2 className="truncate text-lg font-black tracking-[-.03em] text-slate-950">{effective.name}</h2>
-            <p className="mt-1 truncate text-xs text-slate-400">{effective.category} • {effective.city}</p>
+            <h2 className="truncate text-lg font-black tracking-[-.03em] text-slate-950">{currentLead.name}</h2>
+            <p className="mt-1 truncate text-xs text-slate-400">{currentLead.category} • {currentLead.city}</p>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Fechar"><X className="size-4" /></Button>
         </div>
@@ -178,20 +179,20 @@ export function LeadDetailDrawer({
               <div className="flex items-end justify-between gap-4">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[.14em] text-blue-600">Oportunidade comercial</p>
-                  <p className="mt-2 text-xs leading-5 text-slate-600">{opportunityText(effective)}</p>
+                  <p className="mt-2 text-xs leading-5 text-slate-600">{opportunityText(currentLead)}</p>
                 </div>
                 <div className="shrink-0 text-right">
-                  <strong className="text-3xl font-black tracking-[-.06em] text-blue-700">{effective.score}</strong>
+                  <strong className="text-3xl font-black tracking-[-.06em] text-blue-700">{currentLead.score}</strong>
                   <span className="text-xs font-bold text-blue-400">/100</span>
                 </div>
               </div>
 
               <div className="mt-4 h-2 overflow-hidden rounded-full bg-blue-100">
-                <div className="h-full rounded-full bg-blue-600 transition-all" style={{ width: `${effective.score}%` }} />
+                <div className="h-full rounded-full bg-blue-600 transition-all" style={{ width: `${currentLead.score}%` }} />
               </div>
 
               <div className="mt-4 space-y-2">
-                {effective.reasons.slice(0, 6).map(([points, reason]) => (
+                {currentLead.reasons.slice(0, 6).map(([points, reason]) => (
                   <div key={points + reason} className="flex items-center gap-2 text-[11px]">
                     <span className="w-8 rounded-md bg-white px-1.5 py-1 text-center font-black text-blue-700 shadow-sm">{points}</span>
                     <span className="text-slate-600">{reason}</span>
@@ -205,21 +206,21 @@ export function LeadDetailDrawer({
               <div className="space-y-2 rounded-2xl border border-slate-100 p-3">
                 <div className="flex gap-3">
                   <MapPin className="mt-0.5 size-4 shrink-0 text-slate-400" />
-                  <span className="text-xs leading-5 text-slate-600">{effective.address || "Endereço não informado"}</span>
+                  <span className="text-xs leading-5 text-slate-600">{currentLead.address || "Endereço não informado"}</span>
                 </div>
                 <div className="flex gap-3">
                   <Phone className="size-4 shrink-0 text-slate-400" />
-                  <span className="text-xs text-slate-600">{effective.phone || "Telefone não encontrado"}</span>
+                  <span className="text-xs text-slate-600">{currentLead.phone || "Telefone não encontrado"}</span>
                 </div>
                 <div className="flex gap-3">
                   <Mail className="size-4 shrink-0 text-slate-400" />
-                  <span className="truncate text-xs text-slate-600">{effective.email || "E-mail não encontrado"}</span>
+                  <span className="truncate text-xs text-slate-600">{currentLead.email || "E-mail não encontrado"}</span>
                 </div>
                 <div className="flex gap-3">
                   <Globe2 className="size-4 shrink-0 text-slate-400" />
-                  {effective.website ? (
-                    <a href={effective.website} target="_blank" rel="noreferrer" className="truncate text-xs font-semibold text-blue-600 hover:underline">
-                      {effective.website}
+                  {currentLead.website ? (
+                    <a href={currentLead.website} target="_blank" rel="noreferrer" className="truncate text-xs font-semibold text-blue-600 hover:underline">
+                      {currentLead.website}
                     </a>
                   ) : (
                     <span className="text-xs font-semibold text-rose-600">Sem website próprio</span>
@@ -228,7 +229,7 @@ export function LeadDetailDrawer({
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <Button onClick={() => onWhatsApp(effective)} disabled={!effective.phone}>
+                <Button onClick={() => onWhatsApp(currentLead)} disabled={!currentLead.phone}>
                   <MessageCircle className="size-4" /> WhatsApp
                 </Button>
                 <a href={mapsUrl} target="_blank" rel="noreferrer">
@@ -241,7 +242,7 @@ export function LeadDetailDrawer({
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-[10px] font-black uppercase tracking-[.14em] text-slate-400">Reputação</p>
                 <span className="flex items-center gap-1 text-xs font-bold text-amber-600">
-                  <Star className="size-3.5 fill-current" /> {effective.rating || "—"} <span className="font-medium text-slate-400">({effective.reviews})</span>
+                  <Star className="size-3.5 fill-current" /> {currentLead.rating || "—"} <span className="font-medium text-slate-400">({currentLead.reviews})</span>
                 </span>
               </div>
             </section>
@@ -260,7 +261,7 @@ export function LeadDetailDrawer({
                 ))}
               </div>
 
-              {effective.website && (
+              {currentLead.website && (
                 <div className="mt-3">
                   <Button variant="secondary" className="w-full" onClick={enrich} disabled={enriching}>
                     {enriching ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
