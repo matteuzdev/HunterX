@@ -2,6 +2,22 @@ import type { Lead, LeadPriority, LeadTemperature, SearchResult } from "./types"
 
 const provider = (process.env.DATA_PROVIDER || "mock").toLowerCase();
 
+function getApifyToken() {
+  return (
+    process.env.APIFY_TOKEN ||
+    process.env.APIFY_API_TOKEN ||
+    process.env.APIFY_API_KEY ||
+    ""
+  ).trim();
+}
+
+function getApifyEnvName() {
+  if (process.env.APIFY_TOKEN) return "APIFY_TOKEN";
+  if (process.env.APIFY_API_TOKEN) return "APIFY_API_TOKEN";
+  if (process.env.APIFY_API_KEY) return "APIFY_API_KEY";
+  return "";
+}
+
 function digits(value = "") {
   return String(value).replace(/\D/g, "");
 }
@@ -21,7 +37,7 @@ function clampText(value: unknown, max = 160) {
 
 export function getRuntimeStatus() {
   const liveReady =
-    provider === "apify" ? Boolean(process.env.APIFY_TOKEN) :
+    provider === "apify" ? Boolean(getApifyToken()) :
     provider === "outscraper" ? Boolean(process.env.OUTSCRAPER_API_KEY) :
     false;
 
@@ -35,7 +51,8 @@ export function getRuntimeStatus() {
     provider,
     liveReady,
     supabaseReady,
-    version: "0.4.1",
+    apifyEnv: provider === "apify" ? getApifyEnvName() : "",
+    version: "0.4.2",
   };
 }
 
@@ -183,8 +200,8 @@ function mapApify(item: Record<string, unknown>, keyword: string, city: string, 
 }
 
 async function searchApify(keyword: string, city: string): Promise<Lead[]> {
-  const token = process.env.APIFY_TOKEN;
-  if (!token) throw new Error("APIFY_TOKEN não configurado");
+  const token = getApifyToken();
+  if (!token) throw new Error("Token da Apify não configurado");
 
   const response = await fetch(
     "https://api.apify.com/v2/actors/compass~crawler-google-places/run-sync-get-dataset-items?clean=true",
