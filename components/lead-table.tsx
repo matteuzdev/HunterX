@@ -22,11 +22,13 @@ export function LeadTable({
   favorites,
   onFavorite,
   onWhatsApp,
+  onDetails,
 }: {
   leads: Lead[];
   favorites: Record<string, Lead>;
   onFavorite: (lead: Lead) => void;
   onWhatsApp: (lead: Lead) => void;
+  onDetails: (lead: Lead) => void;
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
@@ -86,7 +88,7 @@ export function LeadTable({
                     <Button variant="secondary" size="icon" onClick={() => onFavorite(lead)} title="Favoritar">
                       <Heart className={`size-3.5 ${favorites[lead.id] ? "fill-rose-500 text-rose-500" : ""}`} />
                     </Button>
-                    <Button variant="ghost" size="icon" title="Detalhes"><MoreHorizontal className="size-4" /></Button>
+                    <Button variant="ghost" size="icon" title="Detalhes" onClick={() => onDetails(lead)}><MoreHorizontal className="size-4" /></Button>
                   </div>
                 </td>
               </tr>

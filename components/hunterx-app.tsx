@@ -11,6 +11,7 @@ import type { HistoryItem, Lead } from "@/lib/hunter/types";
 import { Sidebar, type ViewName } from "@/components/sidebar";
 import { MetricCard } from "@/components/metric-card";
 import { LeadTable } from "@/components/lead-table";
+import { LeadDetailDrawer } from "@/components/lead-detail-drawer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -172,6 +173,7 @@ export function HunterXApp() {
   const [temperature, setTemperature] = useState("all");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   useEffect(() => {
     setFavorites(parse(localStorage.getItem("hunterx-favorites"), {}));
@@ -329,7 +331,7 @@ export function HunterXApp() {
                     <Button variant="secondary" size="sm" onClick={() => exportCsv(leads)}><Download className="size-3.5" /> Exportar CSV</Button>
                   </div>
 
-                  <LeadTable leads={visibleLeads} favorites={favorites} onFavorite={toggleFavorite} onWhatsApp={whatsapp} />
+                  <LeadTable leads={visibleLeads} favorites={favorites} onFavorite={toggleFavorite} onWhatsApp={whatsapp} onDetails={setSelectedLead} />
                 </>
               )}
 
@@ -363,7 +365,7 @@ export function HunterXApp() {
           {view === "favorites" && (
             <section className="space-y-5">
               <div><p className="mb-2 text-[10px] font-bold uppercase tracking-[.16em] text-blue-600">Carteira</p><h1 className="text-3xl font-black tracking-[-.045em]">Favoritos</h1></div>
-              <LeadTable leads={Object.values(favorites)} favorites={favorites} onFavorite={toggleFavorite} onWhatsApp={whatsapp} />
+              <LeadTable leads={Object.values(favorites)} favorites={favorites} onFavorite={toggleFavorite} onWhatsApp={whatsapp} onDetails={setSelectedLead} />
             </section>
           )}
 
@@ -410,6 +412,12 @@ export function HunterXApp() {
           )}
         </div>
       </main>
+
+      <LeadDetailDrawer
+        lead={selectedLead}
+        onClose={() => setSelectedLead(null)}
+        onWhatsApp={whatsapp}
+      />
     </div>
   );
 }
