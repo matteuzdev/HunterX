@@ -59,9 +59,9 @@ api/        funções serverless
 lib/        motor de dados e Opportunity Engine
 docs/       arquitetura, pesquisa e roadmap
 index.html  aplicação
-client.js   comportamento da interface
+app.js      servidor Node da aplicação\nclient.js   comportamento da interface
 styles.css  design system
-dev/server.mjs  servidor local
+
 ```
 
 ## Direção

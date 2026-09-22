@@ -2,10 +2,11 @@ import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { enrichLeadWebsite, getRuntimeStatus, searchLeads } from '../lib/engine.js';
+import { enrichLeadWebsite, getRuntimeStatus, searchLeads } from './lib/engine.js';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const root = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT || 3000);
+
 const assets = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/index.html', ['index.html', 'text/html; charset=utf-8']],
@@ -15,7 +16,10 @@ const assets = new Map([
 ]);
 
 function json(res, status, payload) {
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+  res.writeHead(status, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store'
+  });
   res.end(JSON.stringify(payload));
 }
 
@@ -23,7 +27,11 @@ async function readBody(req) {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
   if (!chunks.length) return {};
-  try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { return {}; }
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  } catch {
+    return {};
+  }
 }
 
 const server = http.createServer(async (req, res) => {
@@ -67,6 +75,5 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(port, () => {
   const status = getRuntimeStatus();
-  console.log(`HunterX rodando em http://localhost:${port}`);
-  console.log(`Provider: ${status.provider}${status.provider === 'live' ? (status.liveReady ? ' (configurado)' : ' (SEM CHAVE)') : ''}`);
+  console.log(`HunterX running on port ${port} with provider ${status.provider}`);
 });
