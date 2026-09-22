@@ -26,7 +26,7 @@ HunterX é um SaaS de inteligência comercial para descobrir negócios locais, i
 - WhatsApp contextual
 - exportação CSV
 - modo demo
-- provider Outscraper preparado
+- Apify Google Maps conectado como provider principal\n- Outscraper mantido como provider alternativo
 - enrichment de website
 - dashboard SaaS responsivo
 
@@ -73,3 +73,13 @@ lib/
 ```
 
 A interface antiga em HTML/CSS/JS puro foi substituída. O produto agora está estruturado para evoluir como SaaS.
+
+
+## Provider recomendado
+
+O HunterX usa o Actor `compass/crawler-google-places` da Apify para a descoberta inicial de empresas reais no Google Maps.
+
+Fluxo:
+`nicho + cidade → Apify Google Maps → normalização → Opportunity Score → abordagem`
+
+O enrichment profundo do site fica separado para não pagar crawling pesado em todos os leads.
