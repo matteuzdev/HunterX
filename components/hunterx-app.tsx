@@ -15,6 +15,7 @@ import { LeadDetailDrawer } from "@/components/lead-detail-drawer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { loadLatestSearchSnapshot, saveSearchSnapshot } from "@/lib/hunter/persistence";
 
 type RuntimeStatus = {
   ok: boolean;
@@ -180,10 +181,28 @@ export function HunterXApp() {
     setFavorites(parse(localStorage.getItem("hunterx-favorites"), {}));
     setHistory(parse(localStorage.getItem("hunterx-history"), []));
     setSearches(Number(localStorage.getItem("hunterx-search-count") || 7));
-    setLeads(parse(localStorage.getItem("hunterx-current-leads"), []));
-    setKeyword(localStorage.getItem("hunterx-current-keyword") || "Clínica odontológica");
-    setCity(localStorage.getItem("hunterx-current-city") || "Campina Grande, PB");
-    setSearchCache(parse(localStorage.getItem("hunterx-search-cache"), {}));
+
+    const localLeads = parse<Lead[]>(localStorage.getItem("hunterx-current-leads"), []);
+    const localKeyword = localStorage.getItem("hunterx-current-keyword") || "Clínica odontológica";
+    const localCity = localStorage.getItem("hunterx-current-city") || "Campina Grande, PB";
+    const localCache = parse<Record<string, Lead[]>>(localStorage.getItem("hunterx-search-cache"), {});
+
+    setLeads(localLeads);
+    setKeyword(localKeyword);
+    setCity(localCity);
+    setSearchCache(localCache);
+
+    if (!localLeads.length) {
+      void loadLatestSearchSnapshot().then((snapshot) => {
+        if (!snapshot?.leads?.length) return;
+        const cacheKey = `${snapshot.keyword.trim().toLowerCase()}::${snapshot.city.trim().toLowerCase()}`;
+        setLeads(snapshot.leads);
+        setKeyword(snapshot.keyword);
+        setCity(snapshot.city);
+        setSearchCache((current) => ({ ...current, [cacheKey]: snapshot.leads }));
+      });
+    }
+
     fetch("/api/health", { cache: "no-store" }).then((r) => r.json()).then(setRuntime).catch(() => null);
   }, []);
 
@@ -241,6 +260,14 @@ export function HunterXApp() {
         { keyword, city, count: data.leads?.length || 0, mode: data.mode, at: new Date().toISOString() },
         ...current.filter((item) => item.keyword !== keyword || item.city !== city),
       ].slice(0,30));
+
+      void saveSearchSnapshot({
+        keyword,
+        city,
+        mode: data.mode || "live",
+        leads: freshLeads,
+      });
+
       setView("search");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Falha na busca");
