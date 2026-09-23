@@ -40,6 +40,8 @@ const stages = [
   "respondeu", "negociacao", "cliente", "perdido",
 ] as const;
 
+const securitySchemes = [{ type: "oauth2" as const, scopes: ["email", "profile"] }];
+
 const handler = createMcpHandler((server) => {
   server.registerTool(
     "get_account",
@@ -47,6 +49,8 @@ const handler = createMcpHandler((server) => {
       title: "Ver conta HunterX",
       description: "Mostra plano, saldo de tokens e configurações principais da conta HunterX conectada.",
       inputSchema: z.object({}),
+      securitySchemes,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     async (_, ctx) => {
       const { supabase } = context(ctx);
@@ -64,6 +68,8 @@ const handler = createMcpHandler((server) => {
         city: z.string().min(1).max(120),
         limit: z.number().int().min(1).max(20).default(20),
       }),
+      securitySchemes,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     },
     async ({ keyword, city, limit }, ctx) => {
       const { supabase, userId } = context(ctx);
@@ -79,6 +85,8 @@ const handler = createMcpHandler((server) => {
       inputSchema: z.object({
         limit: z.number().int().min(1).max(100).default(30),
       }),
+      securitySchemes,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     async ({ limit }, ctx) => {
       const { supabase } = context(ctx);
@@ -95,6 +103,8 @@ const handler = createMcpHandler((server) => {
         keyword: z.string().min(1).max(120),
         city: z.string().min(1).max(120),
       }),
+      securitySchemes,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     async ({ keyword, city }, ctx) => {
       const { supabase } = context(ctx);
@@ -111,6 +121,8 @@ const handler = createMcpHandler((server) => {
         status: z.enum(stages).optional(),
         limit: z.number().int().min(1).max(500).default(100),
       }),
+      securitySchemes,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     async ({ status, limit }, ctx) => {
       const { supabase } = context(ctx);
@@ -127,6 +139,8 @@ const handler = createMcpHandler((server) => {
         leadKey: z.string().min(1).max(300),
         status: z.enum(stages),
       }),
+      securitySchemes,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     },
     async ({ leadKey, status }, ctx) => {
       const { supabase } = context(ctx);
@@ -142,6 +156,8 @@ const handler = createMcpHandler((server) => {
       inputSchema: z.object({
         limit: z.number().int().min(1).max(500).default(200),
       }),
+      securitySchemes,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     async ({ limit }, ctx) => {
       const { supabase } = context(ctx);
