@@ -28,12 +28,12 @@ export function TokensView({ account, packages }: { account: HunterAccount; pack
             </span>
             {account.unlimitedTokens ? (
               <>
-                <strong className="mt-3 flex items-center gap-2 text-5xl font-black tracking-[-.07em]"><InfinityIcon className="size-10" /> ILIMITADO</strong>
+                <strong className="mt-3 flex items-center gap-2 text-5xl font-black tracking-[-.07em] text-amber-300"><InfinityIcon className="size-10" /> ILIMITADO</strong>
                 <p className="mt-2 text-xs text-slate-400">A tua conta não sofre débito de tokens no Hunter Engine nem no fallback.</p>
               </>
             ) : (
               <>
-                <strong className="mt-3 block text-5xl font-black tracking-[-.07em]">{account.balance}</strong>
+                <strong className="mt-3 block text-5xl font-black tracking-[-.07em] text-amber-300">{account.balance}</strong>
                 <p className="mt-2 text-xs text-slate-400">≈ {Math.floor(account.balance / 20)} lotes completos de 20 empresas</p>
               </>
             )}

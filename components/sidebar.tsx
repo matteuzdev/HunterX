@@ -59,7 +59,7 @@ export function Sidebar({
               <Icon className="size-4" /><span>{item.label}</span>
               {item.id === "favorites" && favorites > 0 && <span className="ml-auto rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-bold text-blue-300">{favorites}</span>}
               {item.id === "exports" && exportsCount > 0 && <span className="ml-auto rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-300">{exportsCount}</span>}
-              {item.id === "tokens" && <span className="ml-auto rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-300">{unlimitedTokens ? "∞" : tokens}</span>}
+              {item.id === "tokens" && <span className="ml-auto rounded-full border border-amber-400/20 bg-amber-400/10 px-2 py-0.5 text-[10px] font-black text-amber-200">{unlimitedTokens ? "∞" : tokens}</span>}
             </button>
           );
         })}
