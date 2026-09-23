@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   Bot, Sparkles, Plus, Trash2, Save, Play, BookOpen, ShieldAlert,
-  Sliders, MessageSquare, Check, ArrowRight, Copy
+  Sliders, MessageSquare, Check, ArrowRight, Copy, CheckCircle2
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,6 @@ export function AgentStudio({
   const [selectedAgentId, setSelectedAgentId] = useState<string>(DEFAULT_AGENTS[0].id);
   const [savedNotice, setSavedNotice] = useState(false);
 
-  // Carrega agentes persistidos no localStorage
   useEffect(() => {
     try {
       const stored = localStorage.getItem(AGENTS_STORAGE_KEY);
@@ -59,13 +58,13 @@ export function AgentStudio({
   function handleCreateAgent() {
     const newAgent: AIAgent = {
       id: `agent-${Date.now()}`,
-      name: "Novo Agente Especialista",
-      avatar: "🤖",
-      role: "Atendimento & Prospecção",
+      name: "Novo Consultor Especialista",
+      avatar: "bot",
+      role: "Qualificação & Prospecção",
       tone: "consultivo",
       provider: "openai",
       model: "gpt-4o-mini",
-      systemPrompt: "Você é um consultor comercial focado em apresentar oportunidades e agendar diagnósticos.",
+      systemPrompt: "Você é um consultor comercial focado em apresentar oportunidades de expansão digital e agendar diagnósticos.",
       knowledgeBase: [],
       fallbackToHuman: true,
       handoffKeywords: ["humano", "atendente", "falar com pessoa"],
@@ -95,7 +94,7 @@ export function AgentStudio({
 
   function handleDeleteAgent(agentId: string) {
     if (agents.length <= 1) {
-      alert("Você deve manter pelo menos um agente cadastrado.");
+      alert("É necessário manter pelo menos um agente cadastrado.");
       return;
     }
     const updated = agents.filter((a) => a.id !== agentId);
@@ -107,8 +106,8 @@ export function AgentStudio({
     const newItem: AgentKnowledgeItem = {
       id: `know-${Date.now()}`,
       type: "faq",
-      title: "Nova Pergunta / Objeção",
-      content: "Escreva aqui a resposta padrão que o agente deve usar.",
+      title: "Nova Objeção / Dúvida Comum",
+      content: "Escreva aqui a orientação e a resposta que o agente deve usar.",
     };
 
     updateActiveAgent({
@@ -129,40 +128,42 @@ export function AgentStudio({
 
   return (
     <section className="space-y-6">
+      {/* Cabeçalho no padrão HunterX */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[.16em] text-blue-500">
-            Studio IA • Estilo GPT Maker / Converza / Zaya
+          <p className="mb-2 text-[10px] font-black uppercase tracking-[.16em] text-blue-600">Inteligência Artificial</p>
+          <h1 className="text-3xl font-black tracking-[-.045em] text-slate-900">Agentes de IA</h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Configure a personalidade, prompt mestre, base de conhecimento e regras de transbordo humano.
           </p>
-          <h1 className="text-3xl font-black tracking-[-.045em] text-white">Agent Studio</h1>
         </div>
 
         <div className="flex items-center gap-3">
           {savedNotice && (
-            <Badge className="bg-emerald-500/15 text-emerald-300">
-              <Check className="mr-1 size-3" /> Salvo com sucesso!
+            <Badge className="bg-emerald-50 text-emerald-700">
+              <Check className="mr-1 size-3" /> Alterações salvas
             </Badge>
           )}
 
-          <Button onClick={handleCreateAgent} variant="outline" className="border-white/10 text-xs">
-            <Plus className="mr-1.5 size-3.5" /> Criar Novo Agente
+          <Button onClick={handleCreateAgent} variant="secondary">
+            <Plus className="mr-1.5 size-4" /> Novo Agente
           </Button>
 
           <Button
             onClick={() => onTestAgent?.(activeAgent)}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 text-xs text-white"
+            variant="primary"
           >
-            <Play className="mr-1.5 size-3.5" /> Testar no Playground
+            <Play className="mr-1.5 size-4" /> Testar no Simulador
           </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Coluna Esquerda: Seletor de Agentes */}
+        {/* Painel Esquerdo: Seletor de Agentes */}
         <div className="space-y-3 lg:col-span-4">
-          <Card className="divide-y divide-white/5 border border-white/10 bg-[#0f172a] p-2">
+          <Card className="divide-y divide-slate-100 border border-slate-200 bg-white p-2 shadow-sm">
             <div className="p-3">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">Meus Agentes</h2>
+              <span className="text-[11px] font-black uppercase tracking-[.1em] text-slate-400">Agentes Cadastrados</span>
             </div>
 
             {agents.map((agent) => {
@@ -172,22 +173,24 @@ export function AgentStudio({
                   key={agent.id}
                   onClick={() => setSelectedAgentId(agent.id)}
                   className={`flex w-full items-start gap-3 rounded-xl p-3.5 text-left transition ${
-                    isSelected ? "bg-white/[0.08]" : "hover:bg-white/[0.02]"
+                    isSelected
+                      ? "border border-blue-200 bg-blue-50/50 shadow-sm"
+                      : "hover:bg-slate-50"
                   }`}
                 >
-                  <span className="grid size-11 place-items-center rounded-2xl bg-white/5 text-xl">
-                    {agent.avatar}
-                  </span>
+                  <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-blue-100 text-blue-700">
+                    <Bot className="size-5" />
+                  </div>
                   <div className="min-w-0 flex-1">
-                    <strong className="block truncate text-xs font-bold text-white">
+                    <strong className="block truncate text-xs font-bold text-slate-900">
                       {agent.name}
                     </strong>
-                    <small className="block truncate text-[11px] text-slate-400">{agent.role}</small>
+                    <small className="block truncate text-[11px] text-slate-500">{agent.role}</small>
                     <div className="mt-2 flex items-center gap-1.5">
-                      <Badge className="bg-blue-500/10 text-[9px] text-blue-300 capitalize">
+                      <Badge className="bg-blue-50 text-[9px] text-blue-700 capitalize font-medium">
                         {agent.tone}
                       </Badge>
-                      <Badge className="bg-white/5 text-[9px] text-slate-400">
+                      <Badge className="bg-slate-100 text-[9px] text-slate-600">
                         {agent.knowledgeBase.length} docs
                       </Badge>
                     </div>
@@ -198,25 +201,25 @@ export function AgentStudio({
           </Card>
         </div>
 
-        {/* Coluna Direita: Editor Completo do Agente */}
+        {/* Painel Direito: Editor do Agente */}
         <div className="space-y-6 lg:col-span-8">
-          <Card className="border border-white/10 bg-[#0f172a] p-6 text-slate-100">
-            <div className="flex items-center justify-between border-b border-white/5 pb-4">
+          <Card className="border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
               <div className="flex items-center gap-3">
-                <span className="grid size-12 place-items-center rounded-2xl bg-blue-500/10 text-2xl">
-                  {activeAgent.avatar}
-                </span>
+                <div className="grid size-12 place-items-center rounded-2xl bg-blue-50 text-blue-600">
+                  <Bot className="size-6" />
+                </div>
                 <div>
-                  <h2 className="text-base font-bold text-white">{activeAgent.name}</h2>
-                  <p className="text-xs text-slate-400">{activeAgent.role}</p>
+                  <h2 className="text-base font-bold text-slate-900">{activeAgent.name}</h2>
+                  <p className="text-xs text-slate-500">{activeAgent.role}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
                 <Button
                   onClick={() => handleDuplicateAgent(activeAgent)}
-                  variant="outline"
-                  className="border-white/10 text-xs text-slate-300 hover:text-white"
+                  variant="secondary"
+                  size="sm"
                   title="Duplicar este agente"
                 >
                   <Copy className="mr-1.5 size-3.5" /> Duplicar
@@ -224,54 +227,54 @@ export function AgentStudio({
 
                 <Button
                   onClick={() => {
-                    if (confirm(`Tem certeza que deseja excluir o agente "${activeAgent.name}"?`)) {
+                    if (confirm(`Deseja excluir o agente "${activeAgent.name}"?`)) {
                       handleDeleteAgent(activeAgent.id);
                     }
                   }}
-                  variant="outline"
-                  className="border-rose-500/30 text-xs text-rose-400 hover:bg-rose-500/10 hover:text-rose-300"
+                  variant="danger"
+                  size="sm"
                   title="Excluir este agente"
                 >
-                  <Trash2 className="mr-1.5 size-3.5" /> Excluir
+                  <Trash2 className="size-4" />
                 </Button>
 
-                <Button onClick={handleSave} className="bg-emerald-600 text-xs text-white hover:bg-emerald-500">
+                <Button onClick={handleSave} variant="primary" size="sm">
                   <Save className="mr-1.5 size-3.5" /> Salvar Agente
                 </Button>
               </div>
             </div>
 
-            {/* Identidade e Parâmetros */}
+            {/* Configurações de Identidade */}
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <div>
-                <label className="mb-1 block text-xs font-bold text-slate-300">Nome do Agente</label>
+                <label className="mb-1 block text-xs font-bold text-slate-700">Nome do Agente</label>
                 <input
                   type="text"
                   value={activeAgent.name}
                   onChange={(e) => updateActiveAgent({ name: e.target.value })}
-                  className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-bold text-slate-300">Emoji / Avatar</label>
+                <label className="mb-1 block text-xs font-bold text-slate-700">Função / Cargo</label>
                 <input
                   type="text"
-                  value={activeAgent.avatar}
-                  onChange={(e) => updateActiveAgent({ avatar: e.target.value })}
-                  className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  value={activeAgent.role}
+                  onChange={(e) => updateActiveAgent({ role: e.target.value })}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-bold text-slate-300">Tom de Voz</label>
+                <label className="mb-1 block text-xs font-bold text-slate-700">Tom de Voz</label>
                 <select
                   value={activeAgent.tone}
                   onChange={(e) => updateActiveAgent({ tone: e.target.value as AgentTone })}
-                  className="w-full rounded-xl border border-white/10 bg-[#0b1120] px-3.5 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-none"
                 >
-                  <option value="consultivo">Consultivo (Especialista parceiro)</option>
-                  <option value="persuasivo">Persuasivo (Closer / Foco em conversão)</option>
+                  <option value="consultivo">Consultivo (Especialista e parceiro)</option>
+                  <option value="persuasivo">Persuasivo (Foco em conversão e agendamento)</option>
                   <option value="formal">Formal & Institucional</option>
                   <option value="descontraido">Descontraído & Leve</option>
                   <option value="direto">Direto ao Ponto</option>
@@ -279,16 +282,16 @@ export function AgentStudio({
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-bold text-slate-300">Provedor LLM</label>
+                <label className="mb-1 block text-xs font-bold text-slate-700">Provedor LLM</label>
                 <select
                   value={activeAgent.provider}
                   onChange={(e) => updateActiveAgent({ provider: e.target.value as AgentProvider })}
-                  className="w-full rounded-xl border border-white/10 bg-[#0b1120] px-3.5 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-none"
                 >
                   <option value="openai">OpenAI (GPT-4o Mini)</option>
                   <option value="anthropic">Anthropic (Claude 3.5 Sonnet)</option>
                   <option value="gemini">Google Gemini 2.0</option>
-                  <option value="groq">Groq (Llama 3 70B Turbo)</option>
+                  <option value="groq">Groq (Llama 3 70B)</option>
                 </select>
               </div>
             </div>
@@ -296,35 +299,34 @@ export function AgentStudio({
             {/* Prompt Mestre */}
             <div className="mt-6">
               <div className="mb-1 flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-300">Prompt Mestre (System Prompt)</label>
-                <span className="text-[10px] text-slate-500">
-                  Variáveis suportadas: {"{lead_name}"}, {"{city}"}, {"{niche}"}
+                <label className="text-xs font-bold text-slate-700">Prompt Mestre (System Prompt)</label>
+                <span className="text-[10px] text-slate-400">
+                  Variáveis: {"{lead_name}"}, {"{city}"}, {"{niche}"}
                 </span>
               </div>
               <textarea
                 rows={5}
                 value={activeAgent.systemPrompt}
                 onChange={(e) => updateActiveAgent({ systemPrompt: e.target.value })}
-                className="w-full rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs leading-relaxed text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs leading-relaxed text-slate-900 focus:border-blue-500 focus:outline-none"
               />
             </div>
 
-            {/* Base de Conhecimento (RAG) */}
-            <div className="mt-6 border-t border-white/5 pt-6">
+            {/* Base de Conhecimento e Objeções */}
+            <div className="mt-6 border-t border-slate-100 pt-6">
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <BookOpen className="size-4 text-blue-400" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                  <BookOpen className="size-4 text-blue-600" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
                     Base de Conhecimento & Objeções ({activeAgent.knowledgeBase.length})
                   </h3>
                 </div>
                 <Button
                   onClick={handleAddKnowledgeItem}
+                  variant="secondary"
                   size="sm"
-                  variant="outline"
-                  className="border-white/10 text-[11px]"
                 >
-                  <Plus className="mr-1 size-3" /> Adicionar Tópico
+                  <Plus className="mr-1 size-3.5" /> Adicionar Tópico
                 </Button>
               </div>
 
@@ -332,7 +334,7 @@ export function AgentStudio({
                 {activeAgent.knowledgeBase.map((item) => (
                   <div
                     key={item.id}
-                    className="rounded-xl border border-white/5 bg-white/[0.02] p-4 text-xs"
+                    className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 text-xs"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <input
@@ -344,11 +346,11 @@ export function AgentStudio({
                           );
                           updateActiveAgent({ knowledgeBase: updated });
                         }}
-                        className="flex-1 font-bold text-white bg-transparent border-b border-transparent focus:border-blue-500 focus:outline-none"
+                        className="flex-1 font-bold text-slate-900 bg-transparent border-b border-transparent focus:border-blue-500 focus:outline-none"
                       />
                       <button
                         onClick={() => handleRemoveKnowledgeItem(item.id)}
-                        className="text-slate-500 hover:text-rose-400"
+                        className="text-slate-400 hover:text-red-600"
                       >
                         <Trash2 className="size-3.5" />
                       </button>
@@ -363,7 +365,7 @@ export function AgentStudio({
                         );
                         updateActiveAgent({ knowledgeBase: updated });
                       }}
-                      className="mt-2 w-full rounded-lg border border-white/5 bg-white/[0.02] p-2 text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="mt-2 w-full rounded-lg border border-slate-200 bg-white p-2 text-slate-700 focus:border-blue-500 focus:outline-none"
                     />
                   </div>
                 ))}
@@ -371,11 +373,11 @@ export function AgentStudio({
             </div>
 
             {/* Regras de Transbordo Humano */}
-            <div className="mt-6 border-t border-white/5 pt-6">
+            <div className="mt-6 border-t border-slate-100 pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-xs font-bold text-white">Transbordo para Atendente Humano</h4>
-                  <p className="text-[11px] text-slate-400">
+                  <h4 className="text-xs font-bold text-slate-900">Transbordo para Atendente Humano</h4>
+                  <p className="text-[11px] text-slate-500">
                     Pausa o robô automaticamente e notifica quando o cliente pedir uma pessoa real.
                   </p>
                 </div>
@@ -383,13 +385,13 @@ export function AgentStudio({
                   type="checkbox"
                   checked={activeAgent.fallbackToHuman}
                   onChange={(e) => updateActiveAgent({ fallbackToHuman: e.target.checked })}
-                  className="size-4 accent-blue-600"
+                  className="size-4 rounded accent-blue-600"
                 />
               </div>
 
               {activeAgent.fallbackToHuman && (
                 <div className="mt-3">
-                  <label className="mb-1 block text-[11px] text-slate-400">
+                  <label className="mb-1 block text-[11px] text-slate-600">
                     Palavras de gatilho (separadas por vírgula)
                   </label>
                   <input
@@ -400,7 +402,7 @@ export function AgentStudio({
                         handoffKeywords: e.target.value.split(",").map((s) => s.trim()),
                       })
                     }
-                    className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-none"
                   />
                 </div>
               )}
@@ -411,4 +413,3 @@ export function AgentStudio({
     </section>
   );
 }
-

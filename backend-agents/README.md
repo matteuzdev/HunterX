@@ -43,3 +43,4 @@ Microsserviço de alta velocidade para agentes de IA autônomos, utilizando o fr
 O Next.js verifica a variável de ambiente `AGNO_SERVICE_URL`.
 - Se configurada (ex: `AGNO_SERVICE_URL=http://localhost:8000`), o HunterX despacha o raciocínio dos agentes diretamente para o Agno em Python.
 - Se o serviço estiver offline ou na Vercel sem o Python rodando, o Next.js automaticamente utiliza o fallback nativo em TypeScript, garantindo que o sistema nunca caia.
+

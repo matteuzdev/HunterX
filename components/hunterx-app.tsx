@@ -519,10 +519,10 @@ export function HunterXApp() {
     exports: "Exportações",
     tokens: "Tokens",
     messages: "WhatsApp",
-    inbox: "Live Inbox Omnichannel",
-    flows: "Fluxos de Abordagem & Leona",
-    "agent-studio": "Agent Studio",
-    "agent-playground": "Playground de Agentes",
+    inbox: "Mensagens WhatsApp",
+    flows: "Automações",
+    "agent-studio": "Agentes de IA",
+    "agent-playground": "Simulador de IA",
     settings: "Configurações",
   };
 

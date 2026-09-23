@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import {
-  Workflow, Play, Sparkles, Clock, MessageSquare, Mic, Tag,
-  ArrowRight, ShieldCheck, CheckCircle2, ChevronRight, Settings2, Bell,
-  Plus, Trash2, Edit3, Copy, Save, ArrowDown, ArrowUp, X, Check
+  Workflow, Play, Clock, MessageSquare, Mic,
+  Sliders, Bell, Plus, Trash2, ArrowDown, ArrowUp, Check,
+  CheckCircle2, AlertCircle, Sparkles, FileText, ChevronRight
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,8 +16,6 @@ export type FlowNode = {
   id: string;
   name: string;
   type: FlowNodeType;
-  icon: string;
-  color: string;
   config: Record<string, any>;
 };
 
@@ -35,8 +33,8 @@ export type AutomationFlow = {
 const DEFAULT_FLOWS: AutomationFlow[] = [
   {
     id: "flow-1",
-    name: "Abordagem Inicial: Negócios Sem Site",
-    description: "Sequência automatizada com atraso humano, áudio gravado e qualificação no WhatsApp.",
+    name: "Abordagem Inicial: Empresas Sem Website",
+    description: "Sequência cadenciada com intervalo humanizado, áudio gravado e qualificação no WhatsApp.",
     targetNiche: "Geral",
     isActive: true,
     createdAt: new Date().toISOString(),
@@ -44,671 +42,661 @@ const DEFAULT_FLOWS: AutomationFlow[] = [
     nodes: [
       {
         id: "node-1",
-        name: "Simulação de Digitação",
+        name: "Intervalo Inteligente (Digitando)",
         type: "delay",
-        icon: "⏳",
-        color: "from-amber-600 to-orange-600",
         config: { seconds: 4, simulate_typing: true },
       },
       {
         id: "node-2",
-        name: "Mensagem de Elogio & Gancho",
+        name: "Apresentação & Elogio de Entrada",
         type: "message",
-        icon: "💬",
-        color: "from-emerald-600 to-teal-600",
         config: {
-          text: "👋 Olá, equipe da {lead_name}! Tudo bem?\n\nVi as excelentes avaliações de vocês no Google em {city} e achei o trabalho incrível.",
+          text: "Olá, equipe da {lead_name}! Tudo bem?\n\nVi a excelente reputação de vocês no Google em {city} e achei o trabalho incrível.",
         },
       },
       {
         id: "node-3",
-        name: "Áudio Gravado na Hora (PTT)",
+        name: "Áudio Gravado de Diagnóstico (PTT)",
         type: "audio_ptt",
-        icon: "🎙️",
-        color: "from-purple-600 to-indigo-600",
         config: {
+          audio_url: "https://assets.hunterx.app/audios/diagnostico-site-v2.mp3",
           duration_seconds: 22,
-          file_name: "audio_apresentacao.ogg",
-          description: "Áudio explicativo informal sobre os clientes perdidos por falta de site rápido.",
+          caption: "Áudio personalizado com análise rápida da presença digital.",
         },
       },
       {
         id: "node-4",
-        name: "Menu com Opções de Resposta",
+        name: "Menu de Qualificação Rápida",
         type: "menu",
-        icon: "🔘",
-        color: "from-blue-600 to-cyan-600",
         config: {
-          question: "Gostaria de ver uma demonstração de como ficaria a nova página rápida de vocês?",
-          options: ["Sim, quero ver a prévia", "Qual é a média de valor?", "Já temos agência"],
+          question: "Faria sentido apresentarmos esse diagnóstico de 10 minutos para sua equipe?",
+          buttons: ["Sim, pode enviar", "Já temos agência", "Me chame depois"],
         },
       },
       {
         id: "node-5",
-        name: "Mover no Kanban: 'Demonstração'",
+        name: "Atualizar Status no Pipeline",
         type: "kanban_move",
-        icon: "📊",
-        color: "from-violet-600 to-purple-600",
         config: {
-          target_column: "demonstracao",
-          add_tags: ["Interesse Demonstração", "Lead Quente"],
-        },
-      },
-      {
-        id: "node-6",
-        name: "Notificação de Transbordo",
-        type: "notification",
-        icon: "🔔",
-        color: "from-rose-600 to-pink-600",
-        config: {
-          notify_phone: "5583999999999",
-          message: "🔥 Lead respondeu positivamente! Assumir conversa agora.",
+          target_column: "contatado",
         },
       },
     ],
   },
   {
     id: "flow-2",
-    name: "Follow-up 24h: Lead Não Respondeu",
-    description: "Reativação sutil para leads que receberam o contato inicial mas não responderam no dia.",
+    name: "Follow-up 24h: Proposta Sem Resposta",
+    description: "Reativação sutil para leads que receberam o diagnóstico e não responderam.",
     targetNiche: "Geral",
-    isActive: false,
+    isActive: true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     nodes: [
       {
         id: "node-201",
-        name: "Delay de 24 Horas",
+        name: "Aguardar 24 horas",
         type: "delay",
-        icon: "⏳",
-        color: "from-amber-600 to-orange-600",
         config: { seconds: 86400, simulate_typing: false },
       },
       {
         id: "node-202",
-        name: "Mensagem de Checagem Rápida",
+        name: "Lembrete Curto com Pergunta Aberta",
         type: "message",
-        icon: "💬",
-        color: "from-emerald-600 to-teal-600",
         config: {
-          text: "Passando só para confirmar se você conseguiu ver a mensagem anterior sobre a presença da {lead_name} no Google! Se preferir, posso te enviar um print rápido direto por aqui.",
+          text: "Olá! Conseguiram ver os pontos que apontei no site de vocês ontem? Se fizer sentido, posso mostrar como aplicar em 10 min.",
+        },
+      },
+      {
+        id: "node-203",
+        name: "Mover para Negociação",
+        type: "kanban_move",
+        config: {
+          target_column: "negociacao",
         },
       },
     ],
   },
 ];
 
+const FLOWS_STORAGE_KEY = "hunterx-automation-flows";
+
+const NODE_DEFINITIONS: Record<
+  FlowNodeType,
+  { label: string; icon: any; iconColor: string; bgBadge: string; textBadge: string; description: string }
+> = {
+  delay: {
+    label: "Atraso Inteligente",
+    icon: Clock,
+    iconColor: "text-amber-600",
+    bgBadge: "bg-amber-50",
+    textBadge: "text-amber-700",
+    description: "Aguarda alguns segundos e simula status 'digitando...' no WhatsApp.",
+  },
+  message: {
+    label: "Mensagem de Texto",
+    icon: MessageSquare,
+    iconColor: "text-blue-600",
+    bgBadge: "bg-blue-50",
+    textBadge: "text-blue-700",
+    description: "Mensagem persuasiva com interpolação de {lead_name} e {city}.",
+  },
+  audio_ptt: {
+    label: "Áudio Gravado (PTT)",
+    icon: Mic,
+    iconColor: "text-violet-600",
+    bgBadge: "bg-violet-50",
+    textBadge: "text-violet-700",
+    description: "Envia mensagem de voz simulando gravação ao vivo.",
+  },
+  menu: {
+    label: "Menu de Opções",
+    icon: Sliders,
+    iconColor: "text-indigo-600",
+    bgBadge: "bg-indigo-50",
+    textBadge: "text-indigo-700",
+    description: "Apresenta botões de resposta rápida para triagem do lead.",
+  },
+  kanban_move: {
+    label: "Ação no CRM",
+    icon: Workflow,
+    iconColor: "text-emerald-600",
+    bgBadge: "bg-emerald-50",
+    textBadge: "text-emerald-700",
+    description: "Move o lead automaticamente para a coluna de estágio no Pipeline.",
+  },
+  notification: {
+    label: "Alerta de Equipe",
+    icon: Bell,
+    iconColor: "text-rose-600",
+    bgBadge: "bg-rose-50",
+    textBadge: "text-rose-700",
+    description: "Dispara notificação push ou e-mail para o atendente comercial.",
+  },
+};
+
 export function ProspectingFlowView() {
-  const [flows, setFlows] = useState<AutomationFlow[]>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("hunterx-automation-flows");
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch {
-          // fallback
+  const [flows, setFlows] = useState<AutomationFlow[]>(DEFAULT_FLOWS);
+  const [selectedFlowId, setSelectedFlowId] = useState<string>(DEFAULT_FLOWS[0].id);
+  const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
+  const [isAddingNode, setIsAddingNode] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Carrega fluxos persistidos do localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(FLOWS_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setFlows(parsed);
+          setSelectedFlowId(parsed[0].id);
         }
       }
+    } catch (e) {
+      console.error("Erro ao carregar fluxos:", e);
     }
-    return DEFAULT_FLOWS;
-  });
-
-  const [selectedFlowId, setSelectedFlowId] = useState<string>(flows[0]?.id || "flow-1");
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [addNodeModalOpen, setAddNodeModalOpen] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  }, []);
 
   const activeFlow = flows.find((f) => f.id === selectedFlowId) || flows[0];
-  const selectedNode = activeFlow?.nodes.find((n) => n.id === selectedNodeId) || activeFlow?.nodes[0] || null;
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("hunterx-automation-flows", JSON.stringify(flows));
+  function persistFlows(updatedFlows: AutomationFlow[]) {
+    setFlows(updatedFlows);
+    try {
+      localStorage.setItem(FLOWS_STORAGE_KEY, JSON.stringify(updatedFlows));
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2000);
+    } catch (e) {
+      console.error("Erro ao salvar fluxos:", e);
     }
-  }, [flows]);
-
-  function showNotice(msg: string) {
-    setNotice(msg);
-    setTimeout(() => setNotice(null), 2500);
   }
 
-  // --- CRUD DE FLUXOS ---
   function handleCreateFlow() {
     const newFlow: AutomationFlow = {
       id: `flow-${Date.now()}`,
-      name: "Novo Fluxo de Automação",
-      description: "Descreva o objetivo deste funil de mensagens.",
+      name: "Novo Fluxo de Abordagem",
+      description: "Sequência automatizada personalizada para qualificação de leads.",
       targetNiche: "Geral",
       isActive: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       nodes: [
         {
           id: `node-${Date.now()}-1`,
-          name: "Simulação de Digitação",
+          name: "Intervalo Inicial",
           type: "delay",
-          icon: "⏳",
-          color: "from-amber-600 to-orange-600",
           config: { seconds: 3, simulate_typing: true },
         },
         {
           id: `node-${Date.now()}-2`,
-          name: "Primeira Mensagem",
+          name: "Mensagem de Contato",
           type: "message",
-          icon: "💬",
-          color: "from-emerald-600 to-teal-600",
-          config: { text: "Olá! Tudo bem com vocês da {lead_name}?" },
+          config: { text: "Olá {lead_name}, notei oportunidades claras de expansão digital para sua empresa em {city}." },
         },
       ],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     };
 
-    setFlows([...flows, newFlow]);
+    const nextFlows = [...flows, newFlow];
+    persistFlows(nextFlows);
     setSelectedFlowId(newFlow.id);
-    setSelectedNodeId(newFlow.nodes[0].id);
-    showNotice("Novo fluxo criado com sucesso!");
   }
 
-  function handleDeleteFlow(id: string) {
+  function handleDeleteFlow(flowId: string) {
     if (flows.length <= 1) {
-      alert("Você deve manter pelo menos um fluxo.");
+      alert("É necessário manter pelo menos um fluxo de automação.");
       return;
     }
-    const updated = flows.filter((f) => f.id !== id);
-    setFlows(updated);
-    setSelectedFlowId(updated[0].id);
-    showNotice("Fluxo excluído.");
+    const nextFlows = flows.filter((f) => f.id !== flowId);
+    persistFlows(nextFlows);
+    setSelectedFlowId(nextFlows[0].id);
   }
 
-  function updateActiveFlow(patch: Partial<AutomationFlow>) {
-    setFlows((prev) =>
-      prev.map((f) => (f.id === activeFlow.id ? { ...f, ...patch, updatedAt: new Date().toISOString() } : f))
+  function handleUpdateActiveFlow(patch: Partial<AutomationFlow>) {
+    const updated = flows.map((f) =>
+      f.id === activeFlow.id ? { ...f, ...patch, updatedAt: new Date().toISOString() } : f
     );
+    persistFlows(updated);
   }
 
-  // --- CRUD DE NÓS DO FLUXO ---
   function handleAddNode(type: FlowNodeType) {
-    const typeTemplates: Record<FlowNodeType, { name: string; icon: string; color: string; config: any }> = {
-      delay: {
-        name: "Atraso / Digitando...",
-        icon: "⏳",
-        color: "from-amber-600 to-orange-600",
-        config: { seconds: 5, simulate_typing: true },
-      },
-      message: {
-        name: "Mensagem de Texto",
-        icon: "💬",
-        color: "from-emerald-600 to-teal-600",
-        config: { text: "Mensagem personalizada com {lead_name} e {city}." },
-      },
-      audio_ptt: {
-        name: "Áudio Gravado (PTT)",
-        icon: "🎙️",
-        color: "from-purple-600 to-indigo-600",
-        config: { duration_seconds: 20, file_name: "audio_novo.ogg", description: "Áudio de diagnóstico." },
-      },
-      menu: {
-        name: "Menu com Botões",
-        icon: "🔘",
-        color: "from-blue-600 to-cyan-600",
-        config: { question: "Selecione uma opção:", options: ["Opção 1", "Opção 2", "Falar com Atendente"] },
-      },
-      kanban_move: {
-        name: "Mover no Kanban",
-        icon: "📊",
-        color: "from-violet-600 to-purple-600",
-        config: { target_column: "respondeu", add_tags: ["Interesse"] },
-      },
-      notification: {
-        name: "Alerta de Transbordo",
-        icon: "🔔",
-        color: "from-rose-600 to-pink-600",
-        config: { notify_phone: "5583999999999", message: "Aviso de transbordo urgente!" },
-      },
-    };
-
-    const template = typeTemplates[type];
+    const def = NODE_DEFINITIONS[type];
     const newNode: FlowNode = {
       id: `node-${Date.now()}`,
-      name: template.name,
+      name: def.label,
       type,
-      icon: template.icon,
-      color: template.color,
-      config: { ...template.config },
+      config:
+        type === "delay"
+          ? { seconds: 5, simulate_typing: true }
+          : type === "message"
+          ? { text: "Escreva aqui a mensagem para o lead." }
+          : type === "audio_ptt"
+          ? { audio_url: "", duration_seconds: 15, caption: "Áudio explicativo" }
+          : type === "menu"
+          ? { question: "Como prefere prosseguir?", buttons: ["Quero diagnóstico", "Não tenho interesse"] }
+          : type === "kanban_move"
+          ? { target_column: "contatado" }
+          : { alert_message: "Lead interagiu com o fluxo" },
     };
 
-    updateActiveFlow({
-      nodes: [...activeFlow.nodes, newNode],
-    });
-
-    setSelectedNodeId(newNode.id);
-    setAddNodeModalOpen(false);
-    showNotice(`Bloco "${template.name}" adicionado!`);
-  }
-
-  function handleUpdateNodeConfig(patch: Record<string, any>) {
-    if (!selectedNode) return;
-    const updatedNodes = activeFlow.nodes.map((n) =>
-      n.id === selectedNode.id ? { ...n, config: { ...n.config, ...patch } } : n
-    );
-    updateActiveFlow({ nodes: updatedNodes });
-  }
-
-  function handleUpdateNodeName(name: string) {
-    if (!selectedNode) return;
-    const updatedNodes = activeFlow.nodes.map((n) =>
-      n.id === selectedNode.id ? { ...n, name } : n
-    );
-    updateActiveFlow({ nodes: updatedNodes });
+    const nextNodes = [...activeFlow.nodes, newNode];
+    handleUpdateActiveFlow({ nodes: nextNodes });
+    setIsAddingNode(false);
+    setEditingNodeId(newNode.id);
   }
 
   function handleDeleteNode(nodeId: string) {
-    if (activeFlow.nodes.length <= 1) {
-      alert("O fluxo deve ter pelo menos 1 bloco.");
-      return;
-    }
-    const updatedNodes = activeFlow.nodes.filter((n) => n.id !== nodeId);
-    updateActiveFlow({ nodes: updatedNodes });
-    setSelectedNodeId(updatedNodes[0].id);
-    showNotice("Bloco removido do fluxo.");
+    const nextNodes = activeFlow.nodes.filter((n) => n.id !== nodeId);
+    handleUpdateActiveFlow({ nodes: nextNodes });
+    if (editingNodeId === nodeId) setEditingNodeId(null);
   }
 
   function handleMoveNode(index: number, direction: "up" | "down") {
+    const nextNodes = [...activeFlow.nodes];
     const targetIndex = direction === "up" ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= activeFlow.nodes.length) return;
+    if (targetIndex < 0 || targetIndex >= nextNodes.length) return;
 
-    const newNodes = [...activeFlow.nodes];
-    const temp = newNodes[index];
-    newNodes[index] = newNodes[targetIndex];
-    newNodes[targetIndex] = temp;
+    const temp = nextNodes[index];
+    nextNodes[index] = nextNodes[targetIndex];
+    nextNodes[targetIndex] = temp;
 
-    updateActiveFlow({ nodes: newNodes });
+    handleUpdateActiveFlow({ nodes: nextNodes });
+  }
+
+  function handleUpdateNodeConfig(nodeId: string, patch: Record<string, any>) {
+    const nextNodes = activeFlow.nodes.map((n) =>
+      n.id === nodeId ? { ...n, config: { ...n.config, ...patch } } : n
+    );
+    handleUpdateActiveFlow({ nodes: nextNodes });
+  }
+
+  function handleUpdateNodeName(nodeId: string, name: string) {
+    const nextNodes = activeFlow.nodes.map((n) => (n.id === nodeId ? { ...n, name } : n));
+    handleUpdateActiveFlow({ nodes: nextNodes });
   }
 
   return (
     <section className="space-y-6">
-      {/* Top Bar */}
+      {/* Cabeçalho no padrão HunterX */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[.16em] text-purple-400">
-            Flow Builder • Automação Visual Totalmente Editável
+          <p className="mb-2 text-[10px] font-black uppercase tracking-[.16em] text-blue-600">Automações</p>
+          <h1 className="text-3xl font-black tracking-[-.045em] text-slate-900">Sequências & Fluxos</h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Crie sequências de abordagem e qualificação no WhatsApp com gatilhos, mensagens e ações de CRM.
           </p>
-          <h1 className="text-3xl font-black tracking-[-.045em] text-white">Fluxos de Automação</h1>
         </div>
 
         <div className="flex items-center gap-3">
-          {notice && (
-            <Badge className="bg-emerald-500/15 text-emerald-300">
-              <Check className="mr-1 size-3" /> {notice}
+          {saveSuccess && (
+            <Badge className="bg-emerald-50 text-emerald-700">
+              <Check className="mr-1 size-3" /> Salvo no sistema
             </Badge>
           )}
 
-          <Button onClick={handleCreateFlow} variant="outline" className="border-white/10 text-xs">
-            <Plus className="mr-1.5 size-3.5" /> Novo Fluxo
-          </Button>
-
-          <Button
-            onClick={() => updateActiveFlow({ isActive: !activeFlow.isActive })}
-            className={`text-xs ${
-              activeFlow.isActive
-                ? "bg-emerald-600 text-white hover:bg-emerald-500"
-                : "bg-slate-700 text-slate-300 hover:bg-slate-600"
-            }`}
-          >
-            {activeFlow.isActive ? "● Fluxo Ativo" : "○ Fluxo Pausado"}
+          <Button onClick={handleCreateFlow} variant="primary">
+            <Plus className="mr-1.5 size-4" /> Novo Fluxo
           </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Painel 1: Lista de Fluxos (CRUD de Fluxos) */}
-        <div className="space-y-3 lg:col-span-3">
-          <Card className="divide-y divide-white/5 border border-white/10 bg-[#0f172a] p-2">
-            <div className="flex items-center justify-between p-3">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">Meus Funis ({flows.length})</h2>
+        {/* Painel Esquerdo: Lista de Fluxos */}
+        <div className="space-y-3 lg:col-span-4">
+          <Card className="divide-y divide-slate-100 border border-slate-200 bg-white p-2 shadow-sm">
+            <div className="p-3">
+              <span className="text-[11px] font-black uppercase tracking-[.1em] text-slate-400">Fluxos Criados</span>
             </div>
 
-            {flows.map((fl) => {
-              const isSelected = fl.id === selectedFlowId;
+            {flows.map((flow) => {
+              const isSelected = flow.id === selectedFlowId;
               return (
-                <div
-                  key={fl.id}
-                  className={`group relative rounded-xl p-3 transition ${
-                    isSelected ? "bg-white/[0.08]" : "hover:bg-white/[0.02]"
+                <button
+                  key={flow.id}
+                  onClick={() => {
+                    setSelectedFlowId(flow.id);
+                    setEditingNodeId(null);
+                  }}
+                  className={`flex w-full items-start gap-3 rounded-xl p-3.5 text-left transition ${
+                    isSelected
+                      ? "border border-blue-200 bg-blue-50/50 shadow-sm"
+                      : "hover:bg-slate-50"
                   }`}
                 >
-                  <button
-                    onClick={() => {
-                      setSelectedFlowId(fl.id);
-                      setSelectedNodeId(fl.nodes[0]?.id || null);
-                    }}
-                    className="flex w-full flex-col text-left"
-                  >
-                    <div className="flex items-center justify-between">
-                      <strong className="truncate text-xs font-bold text-white">{fl.name}</strong>
-                      <span className={`size-2 rounded-full ${fl.isActive ? "bg-emerald-400" : "bg-slate-500"}`} />
+                  <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-lg bg-blue-100 text-blue-700">
+                    <Workflow className="size-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <strong className="block truncate text-xs font-bold text-slate-900">{flow.name}</strong>
+                    <p className="mt-1 line-clamp-1 text-[11px] text-slate-500">{flow.description}</p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <Badge className="bg-slate-100 text-[10px] text-slate-600 font-medium">
+                        {flow.nodes.length} passos
+                      </Badge>
+                      <Badge className={flow.isActive ? "bg-emerald-50 text-[10px] text-emerald-700" : "bg-slate-100 text-[10px] text-slate-500"}>
+                        {flow.isActive ? "Ativo" : "Inativo"}
+                      </Badge>
                     </div>
-                    <small className="mt-1 line-clamp-1 text-[11px] text-slate-400">{fl.description}</small>
-                    <div className="mt-2 flex items-center gap-1.5">
-                      <Badge className="bg-white/5 text-[9px] text-slate-400">{fl.nodes.length} blocos</Badge>
-                      <Badge className="bg-purple-500/10 text-[9px] text-purple-300">{fl.targetNiche}</Badge>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => handleDeleteFlow(fl.id)}
-                    className="absolute right-2 top-2 hidden rounded p-1 text-slate-500 hover:text-rose-400 group-hover:block"
-                    title="Excluir fluxo"
-                  >
-                    <Trash2 className="size-3.5" />
-                  </button>
-                </div>
+                  </div>
+                </button>
               );
             })}
           </Card>
         </div>
 
-        {/* Painel 2: Canvas e Nós do Fluxo (CRUD de Nós) */}
-        <div className="space-y-4 lg:col-span-5">
-          <Card className="border border-white/10 bg-[#0f172a] p-5 text-slate-100">
-            {/* Metadados do Fluxo Editáveis */}
-            <div className="border-b border-white/5 pb-4">
-              <input
-                type="text"
-                value={activeFlow.name}
-                onChange={(e) => updateActiveFlow({ name: e.target.value })}
-                className="w-full text-base font-bold text-white bg-transparent border-b border-transparent focus:border-purple-500 focus:outline-none"
-              />
-              <input
-                type="text"
-                value={activeFlow.description}
-                onChange={(e) => updateActiveFlow({ description: e.target.value })}
-                placeholder="Descrição do fluxo..."
-                className="mt-1 w-full text-xs text-slate-400 bg-transparent border-b border-transparent focus:border-purple-500 focus:outline-none"
-              />
+        {/* Painel Direito: Construtor Sequencial de Passos (Estilo ManyChat) */}
+        <div className="space-y-5 lg:col-span-8">
+          {/* Header do Fluxo Ativo */}
+          <Card className="border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div className="min-w-0 flex-1">
+                <input
+                  type="text"
+                  value={activeFlow.name}
+                  onChange={(e) => handleUpdateActiveFlow({ name: e.target.value })}
+                  className="w-full text-lg font-black text-slate-900 border-none bg-transparent focus:outline-none focus:ring-0"
+                />
+                <input
+                  type="text"
+                  value={activeFlow.description}
+                  onChange={(e) => handleUpdateActiveFlow({ description: e.target.value })}
+                  className="mt-1 w-full text-xs text-slate-500 border-none bg-transparent focus:outline-none focus:ring-0"
+                  placeholder="Descrição da finalidade deste fluxo..."
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => handleUpdateActiveFlow({ isActive: !activeFlow.isActive })}
+                  variant="secondary"
+                  size="sm"
+                >
+                  {activeFlow.isActive ? "Pausar Fluxo" : "Ativar Fluxo"}
+                </Button>
+
+                <Button
+                  onClick={() => {
+                    if (confirm(`Deseja excluir o fluxo "${activeFlow.name}"?`)) {
+                      handleDeleteFlow(activeFlow.id);
+                    }
+                  }}
+                  variant="danger"
+                  size="sm"
+                  title="Excluir fluxo"
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
             </div>
 
-            {/* Lista Vertical de Blocos / Nós */}
-            <div className="mt-5 space-y-2.5">
-              {activeFlow.nodes.map((node, idx) => {
-                const isSelected = selectedNode?.id === node.id;
-                return (
-                  <div key={node.id} className="relative">
-                    <div
-                      onClick={() => setSelectedNodeId(node.id)}
-                      className={`flex cursor-pointer items-center justify-between rounded-xl border p-3.5 transition ${
-                        isSelected
-                          ? "border-purple-500/60 bg-white/[0.07] shadow-lg shadow-purple-950/20"
-                          : "border-white/5 bg-white/[0.02] hover:bg-white/[0.04]"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className={`grid size-9 place-items-center rounded-xl bg-gradient-to-br ${node.color} text-sm shadow`}>
-                          {node.icon}
-                        </span>
-                        <div>
-                          <strong className="block text-xs font-bold text-white">{node.name}</strong>
-                          <span className="block text-[10px] text-slate-400 capitalize">{node.type.replace("_", " ")}</span>
+            {/* Sequência Conectada de Passos */}
+            <div className="mt-6">
+              <div className="mb-4 flex items-center justify-between">
+                <span className="text-[11px] font-black uppercase tracking-[.1em] text-slate-400">
+                  Etapas da Sequência ({activeFlow.nodes.length})
+                </span>
+
+                <Button
+                  onClick={() => setIsAddingNode(!isAddingNode)}
+                  variant="secondary"
+                  size="sm"
+                >
+                  <Plus className="mr-1 size-3.5" /> Adicionar Passo
+                </Button>
+              </div>
+
+              {/* Seletor para adicionar novo passo */}
+              {isAddingNode && (
+                <div className="mb-5 rounded-xl border border-blue-200 bg-blue-50/40 p-4">
+                  <p className="mb-3 text-xs font-bold text-slate-800">Escolha o tipo de etapa para adicionar:</p>
+                  <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
+                    {(Object.keys(NODE_DEFINITIONS) as FlowNodeType[]).map((type) => {
+                      const def = NODE_DEFINITIONS[type];
+                      const Icon = def.icon;
+                      return (
+                        <button
+                          key={type}
+                          onClick={() => handleAddNode(type)}
+                          className="flex items-start gap-2.5 rounded-xl border border-slate-200 bg-white p-3 text-left transition hover:border-blue-400 hover:shadow-sm"
+                        >
+                          <Icon className={`mt-0.5 size-4 shrink-0 ${def.iconColor}`} />
+                          <div className="min-w-0 flex-1">
+                            <strong className="block text-xs font-bold text-slate-900">{def.label}</strong>
+                            <small className="block line-clamp-1 text-[10px] text-slate-500">{def.description}</small>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Lista dos Passos Verticais Conectados */}
+              <div className="relative space-y-4 border-l-2 border-slate-200 ml-4 pl-6">
+                {activeFlow.nodes.map((node, index) => {
+                  const def = NODE_DEFINITIONS[node.type] || NODE_DEFINITIONS.message;
+                  const Icon = def.icon;
+                  const isEditing = editingNodeId === node.id;
+
+                  return (
+                    <div key={node.id} className="relative">
+                      {/* Indicador de Conexão na linha vertical */}
+                      <span className="absolute -left-[33px] top-4 grid size-4 place-items-center rounded-full border-2 border-white bg-slate-300 text-[9px] font-bold text-slate-700">
+                        {index + 1}
+                      </span>
+
+                      <Card className={`border bg-white p-4 shadow-sm transition ${
+                        isEditing ? "border-blue-500 ring-1 ring-blue-500" : "border-slate-200 hover:border-slate-300"
+                      }`}>
+                        <div className="flex items-center justify-between gap-3">
+                          <div
+                            onClick={() => setEditingNodeId(isEditing ? null : node.id)}
+                            className="flex cursor-pointer items-center gap-3 min-w-0 flex-1"
+                          >
+                            <div className={`grid size-9 shrink-0 place-items-center rounded-lg ${def.bgBadge}`}>
+                              <Icon className={`size-4 ${def.iconColor}`} />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                Passo {index + 1} • {def.label}
+                              </span>
+                              <strong className="block truncate text-sm font-bold text-slate-900">
+                                {node.name}
+                              </strong>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleMoveNode(index, "up")}
+                              disabled={index === 0}
+                              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
+                              title="Subir passo"
+                            >
+                              <ArrowUp className="size-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleMoveNode(index, "down")}
+                              disabled={index === activeFlow.nodes.length - 1}
+                              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
+                              title="Descer passo"
+                            >
+                              <ArrowDown className="size-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteNode(node.id)}
+                              className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                              title="Remover passo"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Ações de Reordenação e Exclusão do Nó */}
-                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          disabled={idx === 0}
-                          onClick={() => handleMoveNode(idx, "up")}
-                          className="rounded p-1 text-slate-500 hover:text-white disabled:opacity-20"
-                        >
-                          <ArrowUp className="size-3.5" />
-                        </button>
-                        <button
-                          disabled={idx === activeFlow.nodes.length - 1}
-                          onClick={() => handleMoveNode(idx, "down")}
-                          className="rounded p-1 text-slate-500 hover:text-white disabled:opacity-20"
-                        >
-                          <ArrowDown className="size-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteNode(node.id)}
-                          className="rounded p-1 text-slate-500 hover:text-rose-400"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
-                      </div>
+                        {/* Editor de Propriedades do Passo Selecionado */}
+                        {isEditing && (
+                          <div className="mt-4 border-t border-slate-100 pt-4">
+                            <label className="mb-1 block text-xs font-bold text-slate-700">Título da Etapa</label>
+                            <input
+                              type="text"
+                              value={node.name}
+                              onChange={(e) => handleUpdateNodeName(node.id, e.target.value)}
+                              className="mb-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-none"
+                            />
+
+                            {/* Configuração específica por tipo de nó */}
+                            {node.type === "delay" && (
+                              <div className="grid gap-3 sm:grid-cols-2">
+                                <div>
+                                  <label className="mb-1 block text-xs font-bold text-slate-700">Duração do Atraso (segundos)</label>
+                                  <input
+                                    type="number"
+                                    value={node.config.seconds || 4}
+                                    onChange={(e) => handleUpdateNodeConfig(node.id, { seconds: Number(e.target.value) })}
+                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-none"
+                                  />
+                                </div>
+                                <div className="flex items-center gap-2 pt-6">
+                                  <input
+                                    type="checkbox"
+                                    id={`sim-typing-${node.id}`}
+                                    checked={node.config.simulate_typing ?? true}
+                                    onChange={(e) => handleUpdateNodeConfig(node.id, { simulate_typing: e.target.checked })}
+                                    className="size-4 rounded accent-blue-600"
+                                  />
+                                  <label htmlFor={`sim-typing-${node.id}`} className="text-xs text-slate-700 font-medium">
+                                    Simular status &ldquo;digitando...&rdquo;
+                                  </label>
+                                </div>
+                              </div>
+                            )}
+
+                            {node.type === "message" && (
+                              <div>
+                                <div className="mb-1 flex items-center justify-between">
+                                  <label className="text-xs font-bold text-slate-700">Texto da Mensagem WhatsApp</label>
+                                  <span className="text-[10px] text-slate-400">Variáveis: {"{lead_name}"}, {"{city}"}</span>
+                                </div>
+                                <textarea
+                                  rows={4}
+                                  value={node.config.text || ""}
+                                  onChange={(e) => handleUpdateNodeConfig(node.id, { text: e.target.value })}
+                                  className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs leading-relaxed text-slate-900 focus:border-blue-500 focus:outline-none"
+                                />
+                              </div>
+                            )}
+
+                            {node.type === "audio_ptt" && (
+                              <div className="space-y-3">
+                                <div>
+                                  <label className="mb-1 block text-xs font-bold text-slate-700">URL do Áudio Gravado (MP3/OGG)</label>
+                                  <input
+                                    type="text"
+                                    value={node.config.audio_url || ""}
+                                    onChange={(e) => handleUpdateNodeConfig(node.id, { audio_url: e.target.value })}
+                                    placeholder="https://sua-empresa.com/audios/audio.mp3"
+                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-none"
+                                  />
+                                </div>
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                  <div>
+                                    <label className="mb-1 block text-xs font-bold text-slate-700">Duração estimada (segundos)</label>
+                                    <input
+                                      type="number"
+                                      value={node.config.duration_seconds || 15}
+                                      onChange={(e) => handleUpdateNodeConfig(node.id, { duration_seconds: Number(e.target.value) })}
+                                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-none"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="mb-1 block text-xs font-bold text-slate-700">Legenda opcional</label>
+                                    <input
+                                      type="text"
+                                      value={node.config.caption || ""}
+                                      onChange={(e) => handleUpdateNodeConfig(node.id, { caption: e.target.value })}
+                                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-none"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {node.type === "menu" && (
+                              <div className="space-y-3">
+                                <div>
+                                  <label className="mb-1 block text-xs font-bold text-slate-700">Pergunta do Menu</label>
+                                  <input
+                                    type="text"
+                                    value={node.config.question || ""}
+                                    onChange={(e) => handleUpdateNodeConfig(node.id, { question: e.target.value })}
+                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-none"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="mb-1 block text-xs font-bold text-slate-700">Opções de Botões (separados por vírgula)</label>
+                                  <input
+                                    type="text"
+                                    value={(node.config.buttons || []).join(", ")}
+                                    onChange={(e) =>
+                                      handleUpdateNodeConfig(node.id, {
+                                        buttons: e.target.value.split(",").map((s) => s.trim()),
+                                      })
+                                    }
+                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-none"
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            {node.type === "kanban_move" && (
+                              <div>
+                                <label className="mb-1 block text-xs font-bold text-slate-700">Coluna de Destino no Pipeline</label>
+                                <select
+                                  value={node.config.target_column || "contatado"}
+                                  onChange={(e) => handleUpdateNodeConfig(node.id, { target_column: e.target.value })}
+                                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-none"
+                                >
+                                  <option value="novo">Novos Leads</option>
+                                  <option value="contatado">Contatados</option>
+                                  <option value="respondeu">Respondeu</option>
+                                  <option value="demonstracao">Demonstração / Diagnóstico</option>
+                                  <option value="negociacao">Negociação</option>
+                                  <option value="cliente">Clientes Fechados</option>
+                                  <option value="perdido">Perdidos</option>
+                                </select>
+                              </div>
+                            )}
+
+                            {node.type === "notification" && (
+                              <div>
+                                <label className="mb-1 block text-xs font-bold text-slate-700">Mensagem do Alerta Interno</label>
+                                <input
+                                  type="text"
+                                  value={node.config.alert_message || ""}
+                                  onChange={(e) => handleUpdateNodeConfig(node.id, { alert_message: e.target.value })}
+                                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-none"
+                                />
+                              </div>
+                            )}
+
+                            <div className="mt-3 flex justify-end">
+                              <Button
+                                onClick={() => setEditingNodeId(null)}
+                                variant="secondary"
+                                size="sm"
+                              >
+                                Concluir Edição
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </Card>
                     </div>
-
-                    {idx < activeFlow.nodes.length - 1 && (
-                      <div className="my-1 flex justify-center">
-                        <div className="h-2 w-px bg-white/10" />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-              <Button
-                onClick={() => setAddNodeModalOpen(true)}
-                variant="outline"
-                className="mt-4 w-full border-dashed border-white/20 py-5 text-xs text-slate-300 hover:bg-white/5"
-              >
-                <Plus className="mr-1.5 size-4" /> Adicionar Bloco ao Fluxo
-              </Button>
+                  );
+                })}
+              </div>
             </div>
-          </Card>
-        </div>
-
-        {/* Painel 3: Propriedades e Edição do Bloco Selecionado */}
-        <div className="space-y-4 lg:col-span-4">
-          <Card className="border border-white/10 bg-[#0f172a] p-5 text-slate-100">
-            {selectedNode ? (
-              <>
-                <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">{selectedNode.icon}</span>
-                    <div>
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-white">Editor do Bloco</h4>
-                      <span className="text-[10px] text-slate-400 capitalize">{selectedNode.type.replace("_", " ")}</span>
-                    </div>
-                  </div>
-                  <Badge className="bg-purple-500/10 text-purple-300 text-[10px]">ID: {selectedNode.id.slice(-6)}</Badge>
-                </div>
-
-                <div className="mt-4 space-y-4 text-xs">
-                  <div>
-                    <label className="mb-1 block font-bold text-slate-300">Título do Bloco</label>
-                    <input
-                      type="text"
-                      value={selectedNode.name}
-                      onChange={(e) => handleUpdateNodeName(e.target.value)}
-                      className="w-full rounded-xl border border-white/10 bg-white/[0.03] p-2.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
-                    />
-                  </div>
-
-                  {/* Configuração específica por tipo de nó */}
-                  {selectedNode.type === "delay" && (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="mb-1 block font-bold text-slate-300">Atraso (segundos)</label>
-                        <input
-                          type="number"
-                          value={selectedNode.config.seconds || 3}
-                          onChange={(e) => handleUpdateNodeConfig({ seconds: Number(e.target.value) })}
-                          className="w-full rounded-xl border border-white/10 bg-white/[0.03] p-2.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
-                        />
-                      </div>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={selectedNode.config.simulate_typing ?? true}
-                          onChange={(e) => handleUpdateNodeConfig({ simulate_typing: e.target.checked })}
-                          className="size-4 accent-purple-600"
-                        />
-                        <span className="text-slate-300">Simular status "Digitando..." no WhatsApp</span>
-                      </label>
-                    </div>
-                  )}
-
-                  {selectedNode.type === "message" && (
-                    <div>
-                      <div className="mb-1 flex items-center justify-between">
-                        <label className="font-bold text-slate-300">Texto da Mensagem</label>
-                        <span className="text-[10px] text-slate-500">{"{lead_name}"}, {"{city}"}</span>
-                      </div>
-                      <textarea
-                        rows={6}
-                        value={selectedNode.config.text || ""}
-                        onChange={(e) => handleUpdateNodeConfig({ text: e.target.value })}
-                        className="w-full rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs leading-relaxed text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
-                      />
-                    </div>
-                  )}
-
-                  {selectedNode.type === "audio_ptt" && (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="mb-1 block font-bold text-slate-300">Nome do Arquivo de Áudio</label>
-                        <input
-                          type="text"
-                          value={selectedNode.config.file_name || ""}
-                          onChange={(e) => handleUpdateNodeConfig({ file_name: e.target.value })}
-                          className="w-full rounded-xl border border-white/10 bg-white/[0.03] p-2.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-1 block font-bold text-slate-300">Duração Simulada (segundos)</label>
-                        <input
-                          type="number"
-                          value={selectedNode.config.duration_seconds || 15}
-                          onChange={(e) => handleUpdateNodeConfig({ duration_seconds: Number(e.target.value) })}
-                          className="w-full rounded-xl border border-white/10 bg-white/[0.03] p-2.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-1 block font-bold text-slate-300">Script / Observação do Áudio</label>
-                        <textarea
-                          rows={3}
-                          value={selectedNode.config.description || ""}
-                          onChange={(e) => handleUpdateNodeConfig({ description: e.target.value })}
-                          className="w-full rounded-xl border border-white/10 bg-white/[0.03] p-2.5 text-xs text-white"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedNode.type === "menu" && (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="mb-1 block font-bold text-slate-300">Pergunta do Menu</label>
-                        <input
-                          type="text"
-                          value={selectedNode.config.question || ""}
-                          onChange={(e) => handleUpdateNodeConfig({ question: e.target.value })}
-                          className="w-full rounded-xl border border-white/10 bg-white/[0.03] p-2.5 text-xs text-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-1 block font-bold text-slate-300">Opções de Botão (uma por linha)</label>
-                        <textarea
-                          rows={4}
-                          value={(selectedNode.config.options || []).join("\n")}
-                          onChange={(e) =>
-                            handleUpdateNodeConfig({
-                              options: e.target.value.split("\n").filter((s) => s.trim().length > 0),
-                            })
-                          }
-                          className="w-full rounded-xl border border-white/10 bg-white/[0.03] p-2.5 text-xs text-white"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedNode.type === "kanban_move" && (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="mb-1 block font-bold text-slate-300">Mover para Coluna do CRM</label>
-                        <select
-                          value={selectedNode.config.target_column || "contatado"}
-                          onChange={(e) => handleUpdateNodeConfig({ target_column: e.target.value })}
-                          className="w-full rounded-xl border border-white/10 bg-[#0b1120] p-2.5 text-xs text-white"
-                        >
-                          <option value="novo">Novo Lead</option>
-                          <option value="contatado">Contatado</option>
-                          <option value="respondeu">Respondeu</option>
-                          <option value="demonstracao">Demonstração</option>
-                          <option value="negociacao">Negociação</option>
-                          <option value="cliente">Cliente Fechado</option>
-                          <option value="perdido">Perdido</option>
-                        </select>
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedNode.type === "notification" && (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="mb-1 block font-bold text-slate-300">Telefone para Notificação (WhatsApp)</label>
-                        <input
-                          type="text"
-                          value={selectedNode.config.notify_phone || ""}
-                          onChange={(e) => handleUpdateNodeConfig({ notify_phone: e.target.value })}
-                          className="w-full rounded-xl border border-white/10 bg-white/[0.03] p-2.5 text-xs text-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-1 block font-bold text-slate-300">Texto do Alerta</label>
-                        <input
-                          type="text"
-                          value={selectedNode.config.message || ""}
-                          onChange={(e) => handleUpdateNodeConfig({ message: e.target.value })}
-                          className="w-full rounded-xl border border-white/10 bg-white/[0.03] p-2.5 text-xs text-white"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div className="p-8 text-center text-xs text-slate-500">Selecione um bloco para editar suas propriedades.</div>
-            )}
           </Card>
         </div>
       </div>
-
-      {/* Modal para Escolher Tipo de Novo Bloco */}
-      {addNodeModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-in fade-in">
-          <Card className="w-full max-w-md border border-white/10 bg-[#0f172a] p-6 text-slate-100 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/5 pb-3">
-              <h3 className="text-sm font-bold text-white">Escolha o Tipo de Bloco</h3>
-              <button onClick={() => setAddNodeModalOpen(false)} className="text-slate-400 hover:text-white">
-                <X className="size-4" />
-              </button>
-            </div>
-
-            <div className="mt-4 grid gap-2.5">
-              {[
-                { type: "delay" as const, title: "Atraso & Digitação Humana", icon: "⏳", desc: "Espera X segundos e simula digitando..." },
-                { type: "message" as const, title: "Mensagem de Texto", icon: "💬", desc: "Dispara texto personalizado com variáveis." },
-                { type: "audio_ptt" as const, title: "Áudio Gravado na Hora (PTT)", icon: "🎙️", desc: "Áudio que aparece como gravado ao vivo." },
-                { type: "menu" as const, title: "Menu Interativo com Botões", icon: "🔘", desc: "Pergunta com opções de resposta rápida." },
-                { type: "kanban_move" as const, title: "Mover Etapa no Kanban", icon: "📊", desc: "Avança o lead no funil do CRM." },
-                { type: "notification" as const, title: "Alerta de Transbordo Humano", icon: "🔔", desc: "Avisa o vendedor por WhatsApp." },
-              ].map((item) => (
-                <button
-                  key={item.type}
-                  onClick={() => handleAddNode(item.type)}
-                  className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-left transition hover:bg-white/[0.06]"
-                >
-                  <span className="text-2xl">{item.icon}</span>
-                  <div>
-                    <strong className="block text-xs font-bold text-white">{item.title}</strong>
-                    <small className="block text-[11px] text-slate-400">{item.desc}</small>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </Card>
-        </div>
-      )}
     </section>
   );
 }

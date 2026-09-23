@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   Play, Bot, User, Send, RotateCcw, Sparkles, CheckCircle2, ShieldAlert,
-  Flame, Terminal, ArrowRight, MessageSquare
+  Terminal, MessageSquare
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,7 @@ export function AgentPlayground({
         }
       }
     } catch (e) {
-      console.error("Erro ao carregar agentes no playground:", e);
+      console.error("Erro ao carregar agentes no simulador:", e);
     }
   }, [initialAgent]);
 
@@ -55,7 +55,7 @@ export function AgentPlayground({
       id: "p1",
       conversationId: "sandbox",
       sender: "agent",
-      content: `Olá equipe da ${simulatedLead.name}! Aqui é ${selectedAgent.name}. Notei a excelente reputação de vocês no Google em ${simulatedLead.city}!`,
+      content: `Olá equipe da ${simulatedLead.name}! Aqui é o consultor comercial da agência. Notei a excelente reputação de vocês no Google em ${simulatedLead.city}!`,
       timestamp: new Date().toISOString(),
       status: "read",
       agentName: selectedAgent.name,
@@ -123,8 +123,8 @@ export function AgentPlayground({
           confidence: data.confidence,
         });
       }
-    } catch {
-      // Fallback
+    } catch (e) {
+      console.error("Erro no playground:", e);
     } finally {
       setLoading(false);
     }
@@ -136,7 +136,7 @@ export function AgentPlayground({
         id: `p-${Date.now()}`,
         conversationId: "sandbox",
         sender: "agent",
-        content: `Olá equipe da ${simulatedLead.name}! Aqui é ${selectedAgent.name}. Analisei o perfil de vocês em ${simulatedLead.city} e percebi oportunidades claras de aumento de captação!`,
+        content: `Olá equipe da ${simulatedLead.name}! Aqui é o ${selectedAgent.name}. Analisei o perfil de vocês em ${simulatedLead.city} e percebi oportunidades claras de aumento de captação!`,
         timestamp: new Date().toISOString(),
         status: "read",
         agentName: selectedAgent.name,
@@ -151,12 +151,14 @@ export function AgentPlayground({
 
   return (
     <section className="space-y-6">
+      {/* Cabeçalho no padrão HunterX */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[.16em] text-indigo-400">
-            Sandbox • Simulação de Abordagem
+          <p className="mb-2 text-[10px] font-black uppercase tracking-[.16em] text-blue-600">Ambiente de Simulação</p>
+          <h1 className="text-3xl font-black tracking-[-.045em] text-slate-900">Simulador de IA</h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Valide as respostas e quebras de objeção do seu agente antes de publicar no WhatsApp real.
           </p>
-          <h1 className="text-3xl font-black tracking-[-.045em] text-white">Agent Playground</h1>
         </div>
 
         <div className="flex items-center gap-3">
@@ -166,160 +168,194 @@ export function AgentPlayground({
               const a = agents.find((ag) => ag.id === e.target.value);
               if (a) setSelectedAgent(a);
             }}
-            className="rounded-xl border border-white/10 bg-[#0f172a] px-3.5 py-2 text-xs text-white focus:outline-none"
+            className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-900 focus:border-blue-500 focus:outline-none"
           >
             {agents.map((ag) => (
               <option key={ag.id} value={ag.id}>
-                {ag.avatar} {ag.name}
+                {ag.name} ({ag.role})
               </option>
             ))}
           </select>
 
-          <Button onClick={handleReset} variant="outline" className="border-white/10 text-xs">
-            <RotateCcw className="mr-1.5 size-3.5" /> Reiniciar Simulação
+          <Button onClick={handleReset} variant="secondary">
+            <RotateCcw className="mr-1.5 size-3.5" /> Reiniciar Conversa
           </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Painel do Chat do Playground */}
-        <div className="flex h-[600px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0f172a] lg:col-span-8">
-          <div className="flex items-center justify-between border-b border-white/5 bg-[#0b1120] px-5 py-3 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">{selectedAgent.avatar}</span>
-              <strong className="text-white">{selectedAgent.name}</strong>
-              <Badge className="bg-blue-500/10 text-[9px] text-blue-300">Modo Sandbox</Badge>
-            </div>
-
-            <div className="flex items-center gap-2 text-slate-400">
-              <span>Simulando:</span>
-              <strong className="text-slate-200">{simulatedLead.name}</strong>
-            </div>
-          </div>
-
-          {/* Lista de Mensagens */}
-          <div className="flex-1 space-y-3 overflow-y-auto p-5">
-            {messages.map((m) => {
-              const isLead = m.sender === "lead";
-              return (
-                <div
-                  key={m.id}
-                  className={`flex flex-col ${isLead ? "items-end" : "items-start"}`}
-                >
-                  <div
-                    className={`max-w-[80%] rounded-2xl p-4 text-xs leading-relaxed ${
-                      isLead
-                        ? "rounded-tr-sm bg-emerald-700 text-white"
-                        : "rounded-tl-sm bg-[#1e293b] text-slate-100"
-                    }`}
-                  >
-                    {!isLead && (
-                      <div className="mb-1 flex items-center gap-1 text-[10px] font-bold text-blue-300">
-                        <Bot className="size-3" />
-                        <span>{m.agentName}</span>
-                      </div>
-                    )}
-                    <p>{m.content}</p>
-                  </div>
+        {/* Painel Central: Chat Interativo de Teste */}
+        <div className="space-y-4 lg:col-span-8">
+          <Card className="flex h-[600px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            {/* Header do Chat */}
+            <div className="flex items-center justify-between border-b border-slate-100 bg-white p-4">
+              <div className="flex items-center gap-3">
+                <div className="grid size-10 place-items-center rounded-xl bg-blue-50 text-blue-600">
+                  <Bot className="size-5" />
                 </div>
-              );
-            })}
-            {loading && (
-              <div className="flex items-center gap-2 text-xs text-slate-400">
-                <Sparkles className="size-3.5 animate-spin text-blue-400" />
-                <span>O agente está formulando a resposta...</span>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">{selectedAgent.name}</h3>
+                  <p className="text-[11px] text-slate-500">
+                    {selectedAgent.provider.toUpperCase()} • Modelo: {selectedAgent.model}
+                  </p>
+                </div>
               </div>
-            )}
-          </div>
 
-          {/* Sugestões Rápidas de Teste */}
-          <div className="flex gap-2 overflow-x-auto border-t border-white/5 bg-white/[0.01] p-2.5 text-[11px]">
-            <span className="shrink-0 text-slate-500 py-1">Testes Rápidos:</span>
-            {[
-              "Quanto custa esse serviço?",
-              "Nós já temos agência que faz nosso marketing",
-              "Não tenho interesse no momento",
-              "Quero falar com uma pessoa real",
-            ].map((promptText) => (
-              <button
-                key={promptText}
-                onClick={() => void handleSend(promptText)}
-                className="shrink-0 rounded-lg border border-white/5 bg-white/[0.03] px-2.5 py-1 text-slate-300 hover:bg-white/10"
-              >
-                {promptText}
-              </button>
-            ))}
-          </div>
+              <Badge className="bg-emerald-50 text-emerald-700 font-semibold">
+                Simulação Ativa
+              </Badge>
+            </div>
 
-          {/* Input */}
-          <div className="border-t border-white/5 bg-[#0b1120] p-4">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                void handleSend();
-              }}
-              className="flex items-center gap-2"
-            >
-              <input
-                type="text"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                placeholder="Digite como se fosse o cliente da empresa..."
-                className="flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-              <Button
-                type="submit"
-                disabled={!inputMessage.trim() || loading}
-                className="bg-blue-600 px-4 text-white hover:bg-blue-500"
-              >
-                <Send className="size-4" />
-              </Button>
-            </form>
-          </div>
+            {/* Mensagens do Simulador */}
+            <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50/50 p-4">
+              {messages.map((m) => {
+                const isUser = m.sender === "lead";
+                return (
+                  <div
+                    key={m.id}
+                    className={`flex flex-col ${isUser ? "items-end" : "items-start"}`}
+                  >
+                    <div className="mb-1 flex items-center gap-1.5 px-1 text-[10px] text-slate-400">
+                      {isUser ? (
+                        <>
+                          <span>Você (como {simulatedLead.name})</span>
+                          <User className="size-3" />
+                        </>
+                      ) : (
+                        <>
+                          <Bot className="size-3 text-blue-600" />
+                          <span className="font-semibold text-slate-700">{selectedAgent.name}</span>
+                        </>
+                      )}
+                    </div>
+
+                    <div
+                      className={`max-w-[80%] rounded-2xl p-3.5 text-xs shadow-sm ${
+                        isUser
+                          ? "bg-blue-600 text-white rounded-tr-sm"
+                          : "bg-white border border-slate-200 text-slate-900 rounded-tl-sm"
+                      }`}
+                    >
+                      <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {loading && (
+                <div className="flex items-center gap-2 text-xs text-slate-400">
+                  <Bot className="size-4 animate-spin text-blue-600" />
+                  <span>{selectedAgent.name} está formulando a resposta...</span>
+                </div>
+              )}
+            </div>
+
+            {/* Sugestões Rápidas de Teste */}
+            <div className="border-t border-slate-100 bg-white px-4 py-2">
+              <span className="mr-2 text-[10px] font-bold text-slate-400">Testar Objeções Rápidas:</span>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {[
+                  "Quanto custa esse serviço?",
+                  "Já temos perfil no Instagram, não precisamos de site.",
+                  "Não tenho tempo agora, me chame semana que vem.",
+                  "Quero falar com uma pessoa real, transfere por favor.",
+                ].map((sug, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleSend(sug)}
+                    className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] text-slate-600 hover:border-blue-300 hover:bg-blue-50/50"
+                  >
+                    {sug}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Input de Envio */}
+            <div className="border-t border-slate-200 bg-white p-3">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void handleSend();
+                  }}
+                  placeholder="Digite sua resposta simulando o cliente..."
+                  className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none"
+                />
+                <Button onClick={() => void handleSend()} disabled={loading} variant="primary">
+                  <Send className="size-4" />
+                </Button>
+              </div>
+            </div>
+          </Card>
         </div>
 
-        {/* Coluna Direita: Auditoria & Debug do Agente */}
+        {/* Painel Lateral: Telemetria & Contexto do Lead */}
         <div className="space-y-4 lg:col-span-4">
-          <Card className="border border-white/10 bg-[#0f172a] p-5 text-slate-100">
-            <div className="flex items-center gap-2 border-b border-white/5 pb-3">
-              <Terminal className="size-4 text-blue-400" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-white">Debug do Agente</h3>
+          <Card className="border border-slate-200 bg-white p-5 shadow-sm">
+            <span className="text-[10px] font-black uppercase tracking-[.14em] text-slate-400">Contexto Simulado</span>
+            <h3 className="mt-1 text-sm font-bold text-slate-900">Lead em Teste</h3>
+
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="mb-1 block text-[10px] font-bold text-slate-500">Nome da Empresa</label>
+                <input
+                  type="text"
+                  value={simulatedLead.name || ""}
+                  onChange={(e) => setSimulatedLead({ ...simulatedLead, name: e.target.value })}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-900 focus:border-blue-500 focus:bg-white focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-[10px] font-bold text-slate-500">Nicho / Categoria</label>
+                <input
+                  type="text"
+                  value={simulatedLead.category || ""}
+                  onChange={(e) => setSimulatedLead({ ...simulatedLead, category: e.target.value })}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-900 focus:border-blue-500 focus:bg-white focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-[10px] font-bold text-slate-500">Cidade / Região</label>
+                <input
+                  type="text"
+                  value={simulatedLead.city || ""}
+                  onChange={(e) => setSimulatedLead({ ...simulatedLead, city: e.target.value })}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-900 focus:border-blue-500 focus:bg-white focus:outline-none"
+                />
+              </div>
+            </div>
+          </Card>
+
+          {/* Telemetria de Intenção e Handoff */}
+          <Card className="border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-2">
+              <Terminal className="size-4 text-blue-600" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">Diagnóstico da IA</h3>
             </div>
 
             <div className="mt-4 space-y-3 text-xs">
-              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
-                <span className="text-[10px] uppercase font-bold text-slate-400">Última Intenção Detectada</span>
-                <div className="mt-1 flex items-center justify-between">
-                  <strong className="text-blue-300 font-mono">{lastDebug.detectedIntent}</strong>
-                  <Badge className="bg-emerald-500/10 text-emerald-400">
-                    {Math.round(lastDebug.confidence * 100)}% conf
-                  </Badge>
-                </div>
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <span className="text-slate-500">Intenção Detectada</span>
+                <Badge className="bg-blue-50 text-blue-700 font-semibold">{lastDebug.detectedIntent}</Badge>
               </div>
 
-              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
-                <span className="text-[10px] uppercase font-bold text-slate-400">Status de Transbordo</span>
-                <div className="mt-1 flex items-center gap-2">
-                  {lastDebug.shouldHandoff ? (
-                    <Badge className="bg-rose-500/15 text-rose-300">
-                      <ShieldAlert className="mr-1 size-3" /> Transbordo Ativado
-                    </Badge>
-                  ) : (
-                    <Badge className="bg-emerald-500/10 text-emerald-300">
-                      <CheckCircle2 className="mr-1 size-3" /> Autônomo (Sem Transbordo)
-                    </Badge>
-                  )}
-                </div>
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <span className="text-slate-500">Confiança do Modelo</span>
+                <span className="font-bold text-slate-900">{(lastDebug.confidence * 100).toFixed(0)}%</span>
               </div>
 
-              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
-                <span className="text-[10px] uppercase font-bold text-slate-400">Contexto Injetado</span>
-                <div className="mt-2 space-y-1 text-[11px] text-slate-300">
-                  <div><strong>Empresa:</strong> {simulatedLead.name}</div>
-                  <div><strong>Cidade:</strong> {simulatedLead.city}</div>
-                  <div><strong>Nicho:</strong> {simulatedLead.category}</div>
-                  <div><strong>Docs de RAG:</strong> {selectedAgent.knowledgeBase.length} tópicos</div>
-                </div>
+              <div className="flex items-center justify-between pb-1">
+                <span className="text-slate-500">Gatilho de Transbordo</span>
+                {lastDebug.shouldHandoff ? (
+                  <Badge className="bg-red-50 text-red-700 font-bold">Transferir p/ Humano</Badge>
+                ) : (
+                  <Badge className="bg-emerald-50 text-emerald-700 font-medium">IA em Controle</Badge>
+                )}
               </div>
             </div>
           </Card>
@@ -328,4 +364,3 @@ export function AgentPlayground({
     </section>
   );
 }
-
