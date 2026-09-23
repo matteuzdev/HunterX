@@ -77,7 +77,7 @@ export type SegmentInsight = {
 // MENSAGERIA & WHATSAPP OMNICHANNEL
 // ==========================================
 
-export type WhatsAppConnectionStatus = "disconnected" | "connecting" | "qrcode" | "connected";
+export type WhatsAppConnectionStatus = "disconnected" | "connecting" | "qrcode" | "connected" | "error";
 
 export type WhatsAppInstance = {
   instanceName: string;
@@ -86,7 +86,18 @@ export type WhatsAppInstance = {
   phoneNumber?: string | null;
   profileName?: string | null;
   profilePicUrl?: string | null;
+  pairingCode?: string | null;
+  apiUrl?: string;
+  isRealConnection?: boolean;
   updatedAt: string;
+  error?: string | null;
+};
+
+export type WhatsAppApiConfig = {
+  apiUrl: string;
+  apiKey: string;
+  instanceName: string;
+  autoConnect?: boolean;
 };
 
 export type MessageSenderType = "lead" | "agent" | "human";
@@ -145,11 +156,26 @@ export type Conversation = {
 export type AgentTone = "consultivo" | "persuasivo" | "formal" | "descontraido" | "direto";
 export type AgentProvider = "openai" | "anthropic" | "gemini" | "groq" | "ollama";
 
+export type KnowledgeSourceType = "text" | "website" | "document" | "faq";
+
 export type AgentKnowledgeItem = {
   id: string;
-  type: "faq" | "service" | "objection" | "link";
+  type: KnowledgeSourceType;
   title: string;
   content: string;
+  charCount?: number;
+  status?: "trained" | "training" | "failed";
+  updatedAt?: string;
+};
+
+export type AgentIntent = {
+  id: string;
+  name: string;
+  description: string;
+  samplePhrases: string[];
+  actionType: "move_kanban" | "handoff_human" | "send_quick_reply" | "webhook";
+  actionPayload?: Record<string, any>;
+  isActive: boolean;
 };
 
 export type AIAgent = {
@@ -168,6 +194,7 @@ export type AIAgent = {
   enableKanbanTool?: boolean;
   enableWebSearchTool?: boolean;
   knowledgeBase: AgentKnowledgeItem[];
+  intents?: AgentIntent[];
   fallbackToHuman: boolean;
   handoffKeywords: string[];
   handoffMessage?: string;

@@ -11,16 +11,25 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}));
     const action = body.action || "connect";
 
-    if (action === "simulate-scan") {
+    if (action === "simulate_scan" || action === "simulate-scan") {
       const result = await WhatsAppService.simulateScanSuccess(
-        body.phoneNumber || "5583999998888",
-        body.profileName || "WhatsApp HunterX"
+        body.phoneNumber || "5583996541234",
+        body.profileName || "HunterX Oficial"
       );
       return NextResponse.json(result);
     }
 
-    const instance = await WhatsAppService.connectInstance();
-    return NextResponse.json(instance);
+    if (action === "connect") {
+      const instance = await WhatsAppService.connectInstance();
+      return NextResponse.json(instance);
+    }
+
+    if (action === "status") {
+      const status = await WhatsAppService.getInstanceStatus();
+      return NextResponse.json(status);
+    }
+
+    return NextResponse.json({ error: "Ação desconhecida" }, { status: 400 });
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 });
   }
@@ -30,4 +39,3 @@ export async function DELETE() {
   const result = await WhatsAppService.disconnectInstance();
   return NextResponse.json(result);
 }
-

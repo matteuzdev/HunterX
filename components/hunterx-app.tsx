@@ -22,7 +22,7 @@ import { TokensView } from "@/components/tokens-view";
 import { AuthStatus } from "@/components/auth-status";
 import { LiveInbox } from "@/components/inbox/live-inbox";
 import { ProspectingFlowView } from "@/components/flows/prospecting-flow-view";
-import { AgentStudio } from "@/components/agents/agent-studio";
+import { AgentsCatalogView } from "@/components/agents/agents-catalog-view";
 import { AgentPlayground } from "@/components/agents/agent-playground";
 import type { AIAgent } from "@/lib/hunter/types";
 import { cn } from "@/lib/utils";
@@ -759,7 +759,12 @@ export function HunterXApp() {
           )}
 
           {view === "agent-studio" && (
-            <AgentStudio />
+            <AgentsCatalogView
+              onSelectAgentForTest={(agent) => {
+                setSelectedAgent(agent);
+                setView("agent-playground");
+              }}
+            />
           )}
 
           {view === "agent-playground" && (
