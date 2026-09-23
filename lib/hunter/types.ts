@@ -14,7 +14,7 @@ export type Lead = {
   reviews: number;
   businessStatus: string;
   socials: Record<string, string>;
-  source: "mock" | "outscraper" | "apify";
+  source: "mock" | "outscraper" | "apify" | "hunter";
   score: number;
   temperature: LeadTemperature;
   priority: LeadPriority;
