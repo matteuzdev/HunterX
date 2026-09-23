@@ -1,15 +1,37 @@
-import {
-  metadataCorsOptionsRequestHandler,
-  protectedResourceHandler,
-} from "mcp-handler";
+import { NextResponse } from "next/server";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gohunterx.vercel.app";
-const authServer = `${supabaseUrl.replace(/\/$/, "")}/auth/v1`;
+export const dynamic = "force-dynamic";
 
-const handler = protectedResourceHandler({
-  authServerUrls: [authServer],
-});
+function payload() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const issuer = supabaseUrl
+    ? `${supabaseUrl.replace(/\/$/, "")}/auth/v1`
+    : "https://gohunterx.vercel.app";
 
-const options = metadataCorsOptionsRequestHandler();
+  return {
+    resource: "https://gohunterx.vercel.app/api/mcp",
+    authorization_servers: [issuer],
+    scopes_supported: ["email", "profile"],
+    bearer_methods_supported: ["header"],
+  };
+}
 
-export { handler as GET, options as OPTIONS };
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Max-Age": "86400",
+};
+
+export async function GET() {
+  return NextResponse.json(payload(), {
+    headers: {
+      ...cors,
+      "Cache-Control": "public, max-age=3600",
+    },
+  });
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: cors });
+}
