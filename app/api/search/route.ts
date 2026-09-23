@@ -11,11 +11,6 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-function internalThreshold() {
-  const configured = Number(process.env.HUNTER_INTERNAL_MIN_RESULTS || 12);
-  return Number.isFinite(configured) ? Math.min(Math.max(configured, 1), 20) : 12;
-}
-
 export async function POST(request: Request) {
   try {
     const supabase = await createSupabaseServerClient();
@@ -50,46 +45,51 @@ export async function POST(request: Request) {
     }
 
     const internalCount = await countHunterDirectoryMatches(keyword, city, limit);
-    const threshold = Math.min(internalThreshold(), limit);
+    let internalLeads = [] as Awaited<ReturnType<typeof searchHunterDirectoryMetered>>["leads"];
+    let tokenBalance = balance;
 
-    if (internalCount >= threshold) {
+    if (internalCount > 0) {
       const internal = await searchHunterDirectoryMetered(
         keyword,
         city,
         limit,
-        `search:${keyword}:${city}`,
+        `search:${keyword}:${city}:internal`,
       );
+      internalLeads = internal.leads;
+      if (internal.tokenBalance !== null) tokenBalance = internal.tokenBalance;
+    }
 
+    if (internalLeads.length >= limit) {
       return NextResponse.json({
         query: { keyword, city },
-        count: internal.leads.length,
+        count: internalLeads.length,
         mode: "live",
         provider: "hunter",
         costPath: "internal",
-        tokenCost: internal.leads.length,
-        tokenBalance: internal.tokenBalance,
-        leads: internal.leads,
+        tokenCost: internalLeads.length,
+        tokenBalance,
+        leads: internalLeads.slice(0, limit),
       }, {
         headers: { "Cache-Control": "private, no-store" },
       });
     }
 
     const external = await searchLeads(keyword, city);
-    const leads = dedupeLeads(external.leads).slice(0, limit);
-    let tokenBalance = balance;
+    const leads = dedupeLeads([...internalLeads, ...external.leads]).slice(0, limit);
+    const externalAdded = leads.filter((lead) => lead.source !== "hunter").length;
 
-    if (leads.length) {
+    if (externalAdded > 0) {
       const { data: nextBalance, error: tokenError } = await supabase.rpc("consume_tokens", {
-        p_amount: leads.length,
-        p_reference: `search:${keyword}:${city}`,
+        p_amount: externalAdded,
+        p_reference: `search:${keyword}:${city}:fallback`,
         p_metadata: {
           provider: "fallback",
-          count: leads.length,
-          internal_matches: internalCount,
+          count: externalAdded,
+          internal_hits: internalLeads.length,
         },
       });
       if (tokenError) {
-        return NextResponse.json({ error: "Não foi possível debitar os tokens desta busca." }, { status: 409 });
+        return NextResponse.json({ error: "Não foi possível debitar os tokens complementares desta busca." }, { status: 409 });
       }
       tokenBalance = Number(nextBalance);
     }
@@ -97,9 +97,9 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ...external,
       count: leads.length,
-      provider: "fallback",
-      costPath: "external",
-      internalHits: internalCount,
+      provider: internalLeads.length ? "hunter+fallback" : "fallback",
+      costPath: internalLeads.length ? "hybrid" : "external",
+      internalHits: internalLeads.length,
       tokenCost: leads.length,
       tokenBalance,
       leads,
