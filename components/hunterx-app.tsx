@@ -14,6 +14,9 @@ import { LeadTable } from "@/components/lead-table";
 import { LeadDetailDrawer } from "@/components/lead-detail-drawer";
 import { PipelineView } from "@/components/pipeline-view";
 import { SegmentIntelligenceView } from "@/components/segment-intelligence-view";
+import { HistoryDetailView } from "@/components/history-detail-view";
+import { BulkWhatsAppPanel } from "@/components/bulk-whatsapp-panel";
+import { ExportsView } from "@/components/exports-view";
 import { AuthStatus } from "@/components/auth-status";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +30,7 @@ import {
 } from "@/lib/hunter/persistence";
 import { loadLeadRegistry, makeLeadKey, syncLeadsToRegistry, updateLeadStage } from "@/lib/hunter/crm";
 import { loadSegmentInsights } from "@/lib/hunter/segments";
+import { loadExportLogs, logExport, type ExportLog } from "@/lib/hunter/exports";
 
 type RuntimeStatus = {
   ok: boolean;
@@ -195,6 +199,10 @@ export function HunterXApp() {
   const [notice, setNotice] = useState("");
   const [crmRecords, setCrmRecords] = useState<Record<string, LeadCrmRecord>>({});
   const [segmentInsights, setSegmentInsights] = useState<SegmentInsight[]>([]);
+  const [selectedHistory, setSelectedHistory] = useState<HistoryItem | null>(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkLeads, setBulkLeads] = useState<Lead[]>([]);
+  const [exportLogs, setExportLogs] = useState<ExportLog[]>([]);
 
   useEffect(() => {
     const localFavorites = parse<Record<string, Lead>>(localStorage.getItem("hunterx-favorites"), {});
@@ -264,9 +272,11 @@ export function HunterXApp() {
       localLeads.length ? Promise.resolve(null) : loadLatestSearchSnapshot(),
       loadLeadRegistry(),
       loadSegmentInsights(),
-    ]).then(([remoteHistory, latest, registry, segments]) => {
+      loadExportLogs(),
+    ]).then(([remoteHistory, latest, registry, segments, exports]) => {
       setCrmRecords(indexCrm(registry));
       setSegmentInsights(segments);
+      setExportLogs(exports);
       if (remoteHistory.length) {
         setHistory((current) => {
           const merged = [...remoteHistory, ...current];
@@ -422,6 +432,18 @@ export function HunterXApp() {
     setCrmRecords((current) => ({ ...current, [updated.leadKey]: updated }));
   }
 
+  async function handleExport(targetLeads: Lead[]) {
+    if (!targetLeads.length) return;
+    exportCsv(targetLeads);
+    await logExport({ keyword, city, leadCount: targetLeads.length });
+    setExportLogs(await loadExportLogs());
+  }
+
+  function openBulkWhatsApp(targetLeads: Lead[]) {
+    setBulkLeads(targetLeads);
+    setBulkOpen(true);
+  }
+
   async function reopenHistory(item: HistoryItem) {
     setKeyword(item.keyword);
     setCity(item.city);
@@ -432,8 +454,9 @@ export function HunterXApp() {
     const cached = searchCache[cacheKey];
     if (cached?.length) {
       setLeads(cached);
+      setSelectedHistory(item);
       setNotice("Busca histórica aberta do cache local. Zero crédito Apify consumido.");
-      setView("search");
+      setView("history-detail");
       return;
     }
 
@@ -444,29 +467,32 @@ export function HunterXApp() {
     if (remote?.leads?.length) {
       setLeads(remote.leads);
       setSearchCache((current) => ({ ...current, [cacheKey]: remote.leads }));
+      setSelectedHistory({ ...item, at: remote.createdAt, count: remote.leads.length, mode: remote.mode });
       setNotice("Busca histórica recuperada do Supabase. Zero crédito Apify consumido.");
-      setView("search");
+      setView("history-detail");
       return;
     }
 
     setError("Os dados desta busca antiga não foram encontrados. Use Atualizar dados somente se quiser consumir uma nova busca da Apify.");
-    setView("search");
+    setView("history");
   }
 
   const title: Record<ViewName, string> = {
     dashboard: "Visão geral",
     search: "Buscar leads",
     history: "Histórico",
+    "history-detail": "Detalhes da busca",
     pipeline: "Pipeline",
     segments: "Inteligência de segmentos",
     favorites: "Favoritos",
-    messages: "Mensagens",
+    exports: "Exportações",
+    messages: "WhatsApp",
     settings: "Configurações",
   };
 
   return (
     <div className="flex min-h-screen bg-[#f6f8fc] text-slate-900">
-      <Sidebar view={view} onChange={setView} favorites={Object.keys(favorites).length} searches={searches} />
+      <Sidebar view={view} onChange={setView} favorites={Object.keys(favorites).length} searches={searches} exportsCount={exportLogs.length} />
 
       <main className="min-w-0 flex-1">
         <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-xl md:px-7">
@@ -555,7 +581,7 @@ export function HunterXApp() {
                       <Button variant="secondary" size="sm" onClick={() => void runSearch(true)} disabled={loading}>
                         <RefreshCw className="size-3.5" /> Atualizar dados • usa crédito
                       </Button>
-                      <Button variant="secondary" size="sm" onClick={() => exportCsv(leads)}><Download className="size-3.5" /> Exportar CSV</Button>
+                      <Button variant="secondary" size="sm" onClick={() => void handleExport(leads)}><Download className="size-3.5" /> Exportar CSV</Button>
                     </div>
                   </div>
 
@@ -590,6 +616,21 @@ export function HunterXApp() {
             </section>
           )}
 
+          {view === "history-detail" && selectedHistory && (
+            <HistoryDetailView
+              item={selectedHistory}
+              leads={leads}
+              favorites={favorites}
+              crmRecords={crmRecords}
+              onBack={() => setView("history")}
+              onFavorite={toggleFavorite}
+              onWhatsApp={whatsapp}
+              onDetails={setSelectedLead}
+              onExport={(targetLeads) => void handleExport(targetLeads)}
+              onBulkWhatsApp={openBulkWhatsApp}
+            />
+          )}
+
           {view === "pipeline" && (
             <PipelineView
               records={Object.values(crmRecords)}
@@ -606,6 +647,10 @@ export function HunterXApp() {
               <div><p className="mb-2 text-[10px] font-bold uppercase tracking-[.16em] text-blue-600">Carteira</p><h1 className="text-3xl font-black tracking-[-.045em]">Favoritos</h1></div>
               <LeadTable leads={Object.values(favorites)} favorites={favorites} onFavorite={toggleFavorite} onWhatsApp={whatsapp} onDetails={setSelectedLead} crmRecords={crmRecords} />
             </section>
+          )}
+
+          {view === "exports" && (
+            <ExportsView logs={exportLogs} />
           )}
 
           {view === "messages" && (
@@ -651,6 +696,13 @@ export function HunterXApp() {
           )}
         </div>
       </main>
+
+      <BulkWhatsAppPanel
+        open={bulkOpen}
+        leads={bulkLeads}
+        onClose={() => setBulkOpen(false)}
+        onContacted={(lead) => void handleStageChange(lead, "contatado")}
+      />
 
       <LeadDetailDrawer
         lead={selectedLead}

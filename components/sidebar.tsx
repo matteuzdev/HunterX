@@ -8,6 +8,7 @@ import {
   Gauge,
   Heart,
   MessageSquareText,
+  FileSpreadsheet,
   Search,
   Workflow,
   BarChart3,
@@ -16,7 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type ViewName = "dashboard" | "search" | "history" | "pipeline" | "segments" | "favorites" | "messages" | "settings";
+export type ViewName = "dashboard" | "search" | "history" | "history-detail" | "pipeline" | "segments" | "favorites" | "exports" | "messages" | "settings";
 
 const items = [
   { id: "dashboard" as const, label: "Visão geral", icon: Gauge },
@@ -25,7 +26,8 @@ const items = [
   { id: "pipeline" as const, label: "Pipeline", icon: Workflow },
   { id: "segments" as const, label: "Segmentos", icon: BarChart3 },
   { id: "favorites" as const, label: "Favoritos", icon: Heart },
-  { id: "messages" as const, label: "Mensagens", icon: MessageSquareText },
+  { id: "exports" as const, label: "Exportações", icon: FileSpreadsheet },
+  { id: "messages" as const, label: "WhatsApp", icon: MessageSquareText },
 ];
 
 export function Sidebar({
@@ -33,11 +35,13 @@ export function Sidebar({
   onChange,
   favorites,
   searches,
+  exportsCount = 0,
 }: {
   view: ViewName;
   onChange: (view: ViewName) => void;
   favorites: number;
   searches: number;
+  exportsCount?: number;
 }) {
   return (
     <aside className="hidden h-screen w-[270px] shrink-0 border-r border-white/5 bg-[#0b1120] p-4 text-slate-300 lg:flex lg:flex-col">
@@ -68,6 +72,9 @@ export function Sidebar({
               <span>{item.label}</span>
               {item.id === "favorites" && favorites > 0 && (
                 <span className="ml-auto rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-bold text-blue-300">{favorites}</span>
+              )}
+              {item.id === "exports" && exportsCount > 0 && (
+                <span className="ml-auto rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-300">{exportsCount}</span>
               )}
             </button>
           );
