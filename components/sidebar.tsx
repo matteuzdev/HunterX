@@ -9,17 +9,21 @@ import {
   Heart,
   MessageSquareText,
   Search,
+  Workflow,
+  BarChart3,
   Settings2,
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type ViewName = "dashboard" | "search" | "history" | "favorites" | "messages" | "settings";
+export type ViewName = "dashboard" | "search" | "history" | "pipeline" | "segments" | "favorites" | "messages" | "settings";
 
 const items = [
   { id: "dashboard" as const, label: "Visão geral", icon: Gauge },
   { id: "search" as const, label: "Buscar leads", icon: Search },
   { id: "history" as const, label: "Histórico", icon: Clock3 },
+  { id: "pipeline" as const, label: "Pipeline", icon: Workflow },
+  { id: "segments" as const, label: "Segmentos", icon: BarChart3 },
   { id: "favorites" as const, label: "Favoritos", icon: Heart },
   { id: "messages" as const, label: "Mensagens", icon: MessageSquareText },
 ];

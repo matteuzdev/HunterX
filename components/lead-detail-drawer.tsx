@@ -5,7 +5,7 @@ import {
   CheckCircle2, Copy, ExternalLink, Globe2, Loader2, Mail, MapPin,
   MessageCircle, Phone, Sparkles, Star, WandSparkles, X, XCircle
 } from "lucide-react";
-import type { Lead } from "@/lib/hunter/types";
+import type { Lead, LeadCrmRecord, LeadStage } from "@/lib/hunter/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -69,10 +69,14 @@ export function LeadDetailDrawer({
   lead,
   onClose,
   onWhatsApp,
+  crmRecord,
+  onStageChange,
 }: {
   lead: Lead | null;
   onClose: () => void;
   onWhatsApp: (lead: Lead) => void;
+  crmRecord?: LeadCrmRecord;
+  onStageChange?: (lead: Lead, stage: LeadStage) => void;
 }) {
   const [enriching, setEnriching] = useState(false);
   const [enrichment, setEnrichment] = useState<EnrichmentResult | null>(null);
@@ -175,6 +179,37 @@ export function LeadDetailDrawer({
 
         <div className="flex-1 overflow-y-auto">
           <div className="space-y-5 p-5">
+            <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[.14em] text-slate-400">Pipeline CRM</p>
+                  <p className="mt-1 text-[10px] text-slate-500">
+                    {crmRecord?.seenCount && crmRecord.seenCount > 1 ? `Encontrado em ${crmRecord.seenCount} buscas` : "Primeira aparição registrada"}
+                  </p>
+                </div>
+                <select
+                  value={crmRecord?.status || "novo"}
+                  onChange={(event) => onStageChange?.(currentLead, event.target.value as LeadStage)}
+                  className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-[11px] font-bold text-slate-700 outline-none"
+                >
+                  <option value="novo">Novo</option>
+                  <option value="analisado">Analisado</option>
+                  <option value="demonstracao">Demonstração</option>
+                  <option value="contatado">Contatado</option>
+                  <option value="respondeu">Respondeu</option>
+                  <option value="negociacao">Negociação</option>
+                  <option value="cliente">Cliente</option>
+                  <option value="perdido">Perdido</option>
+                </select>
+              </div>
+              {crmRecord?.firstSeenAt && (
+                <div className="mt-3 grid grid-cols-2 gap-2 text-[9px] text-slate-400">
+                  <span>Primeira vez<br/><strong className="text-slate-600">{new Date(crmRecord.firstSeenAt).toLocaleDateString("pt-BR")}</strong></span>
+                  <span>Última vez<br/><strong className="text-slate-600">{new Date(crmRecord.lastSeenAt).toLocaleDateString("pt-BR")}</strong></span>
+                </div>
+              )}
+            </section>
+
             <section className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-4">
               <div className="flex items-end justify-between gap-4">
                 <div>

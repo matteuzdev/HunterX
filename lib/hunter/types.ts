@@ -37,3 +37,38 @@ export type HistoryItem = {
   mode?: string;
   at: string;
 };
+
+
+export type LeadStage =
+  | "novo"
+  | "analisado"
+  | "demonstracao"
+  | "contatado"
+  | "respondeu"
+  | "negociacao"
+  | "cliente"
+  | "perdido";
+
+export type LeadCrmRecord = {
+  leadKey: string;
+  status: LeadStage;
+  seenCount: number;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  contactedAt?: string | null;
+  notes?: string;
+  lead: Lead;
+};
+
+export type SegmentInsight = {
+  keyword: string;
+  searches: number;
+  cities: number;
+  uniqueLeads: number;
+  noWebsiteRate: number;
+  phoneRate: number;
+  hotRate: number;
+  avgRating: number;
+  avgScore: number;
+  lastSeenAt: string;
+};

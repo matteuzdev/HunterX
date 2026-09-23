@@ -7,11 +7,13 @@ import {
   Target, UsersRound, WandSparkles, RefreshCw
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import type { HistoryItem, Lead } from "@/lib/hunter/types";
+import type { HistoryItem, Lead, LeadCrmRecord, LeadStage, SegmentInsight } from "@/lib/hunter/types";
 import { Sidebar, type ViewName } from "@/components/sidebar";
 import { MetricCard } from "@/components/metric-card";
 import { LeadTable } from "@/components/lead-table";
 import { LeadDetailDrawer } from "@/components/lead-detail-drawer";
+import { PipelineView } from "@/components/pipeline-view";
+import { SegmentIntelligenceView } from "@/components/segment-intelligence-view";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +24,8 @@ import {
   makeQueryKey,
   saveSearchSnapshot,
 } from "@/lib/hunter/persistence";
+import { loadLeadRegistry, makeLeadKey, syncLeadsToRegistry, updateLeadStage } from "@/lib/hunter/crm";
+import { loadSegmentInsights } from "@/lib/hunter/segments";
 
 type RuntimeStatus = {
   ok: boolean;
@@ -29,6 +33,10 @@ type RuntimeStatus = {
   liveReady: boolean;
   version: string;
 };
+
+function indexCrm(records: LeadCrmRecord[]) {
+  return Object.fromEntries(records.map((record) => [record.leadKey, record]));
+}
 
 function parse<T>(value: string | null, fallback: T): T {
   if (!value) return fallback;
@@ -184,6 +192,8 @@ export function HunterXApp() {
   const [searchCache, setSearchCache] = useState<Record<string, Lead[]>>({});
   const [hydrated, setHydrated] = useState(false);
   const [notice, setNotice] = useState("");
+  const [crmRecords, setCrmRecords] = useState<Record<string, LeadCrmRecord>>({});
+  const [segmentInsights, setSegmentInsights] = useState<SegmentInsight[]>([]);
 
   useEffect(() => {
     const localFavorites = parse<Record<string, Lead>>(localStorage.getItem("hunterx-favorites"), {});
@@ -205,7 +215,11 @@ export function HunterXApp() {
     void Promise.all([
       loadSearchHistorySnapshots(),
       localLeads.length ? Promise.resolve(null) : loadLatestSearchSnapshot(),
-    ]).then(([remoteHistory, latest]) => {
+      loadLeadRegistry(),
+      loadSegmentInsights(),
+    ]).then(([remoteHistory, latest, registry, segments]) => {
+      setCrmRecords(indexCrm(registry));
+      setSegmentInsights(segments);
       if (remoteHistory.length) {
         setHistory((current) => {
           const merged = [...remoteHistory, ...current];
@@ -320,12 +334,18 @@ export function HunterXApp() {
         ...current.filter((item) => makeQueryKey(item.keyword, item.city) !== cacheKey),
       ].slice(0, 50));
 
-      const saved = await saveSearchSnapshot({
-        keyword,
-        city,
-        mode: data.mode || "live",
-        leads: freshLeads,
-      });
+      const [saved, registry] = await Promise.all([
+        saveSearchSnapshot({
+          keyword,
+          city,
+          mode: data.mode || "live",
+          leads: freshLeads,
+        }),
+        syncLeadsToRegistry(freshLeads),
+      ]);
+
+      if (registry.length) setCrmRecords(indexCrm(registry));
+      void loadSegmentInsights().then(setSegmentInsights);
 
       setNotice(saved
         ? "Nova busca realizada e salva no Supabase."
@@ -346,6 +366,12 @@ export function HunterXApp() {
       else next[lead.id] = lead;
       return next;
     });
+  }
+
+  async function handleStageChange(lead: Lead, stage: LeadStage) {
+    const updated = await updateLeadStage(lead, stage);
+    if (!updated) return;
+    setCrmRecords((current) => ({ ...current, [updated.leadKey]: updated }));
   }
 
   async function reopenHistory(item: HistoryItem) {
@@ -383,6 +409,8 @@ export function HunterXApp() {
     dashboard: "Visão geral",
     search: "Buscar leads",
     history: "Histórico",
+    pipeline: "Pipeline",
+    segments: "Inteligência de segmentos",
     favorites: "Favoritos",
     messages: "Mensagens",
     settings: "Configurações",
@@ -482,7 +510,7 @@ export function HunterXApp() {
                     </div>
                   </div>
 
-                  <LeadTable leads={visibleLeads} favorites={favorites} onFavorite={toggleFavorite} onWhatsApp={whatsapp} onDetails={setSelectedLead} />
+                  <LeadTable leads={visibleLeads} favorites={favorites} onFavorite={toggleFavorite} onWhatsApp={whatsapp} onDetails={setSelectedLead} crmRecords={crmRecords} />
                 </>
               )}
 
@@ -513,10 +541,21 @@ export function HunterXApp() {
             </section>
           )}
 
+          {view === "pipeline" && (
+            <PipelineView
+              records={Object.values(crmRecords)}
+              onOpen={(record) => setSelectedLead(record.lead)}
+            />
+          )}
+
+          {view === "segments" && (
+            <SegmentIntelligenceView insights={segmentInsights} />
+          )}
+
           {view === "favorites" && (
             <section className="space-y-5">
               <div><p className="mb-2 text-[10px] font-bold uppercase tracking-[.16em] text-blue-600">Carteira</p><h1 className="text-3xl font-black tracking-[-.045em]">Favoritos</h1></div>
-              <LeadTable leads={Object.values(favorites)} favorites={favorites} onFavorite={toggleFavorite} onWhatsApp={whatsapp} onDetails={setSelectedLead} />
+              <LeadTable leads={Object.values(favorites)} favorites={favorites} onFavorite={toggleFavorite} onWhatsApp={whatsapp} onDetails={setSelectedLead} crmRecords={crmRecords} />
             </section>
           )}
 
@@ -568,6 +607,8 @@ export function HunterXApp() {
         lead={selectedLead}
         onClose={() => setSelectedLead(null)}
         onWhatsApp={whatsapp}
+        crmRecord={selectedLead ? crmRecords[makeLeadKey(selectedLead)] : undefined}
+        onStageChange={(lead, stage) => void handleStageChange(lead, stage)}
       />
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { ExternalLink, Heart, MoreHorizontal, PhoneCall } from "lucide-react";
-import type { Lead } from "@/lib/hunter/types";
+import type { Lead, LeadCrmRecord } from "@/lib/hunter/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -23,12 +23,14 @@ export function LeadTable({
   onFavorite,
   onWhatsApp,
   onDetails,
+  crmRecords = {},
 }: {
   leads: Lead[];
   favorites: Record<string, Lead>;
   onFavorite: (lead: Lead) => void;
   onWhatsApp: (lead: Lead) => void;
   onDetails: (lead: Lead) => void;
+  crmRecords?: Record<string, LeadCrmRecord>;
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
@@ -57,6 +59,14 @@ export function LeadTable({
                     <span>
                       <strong className="block max-w-[240px] truncate text-[12px] text-slate-900">{lead.name}</strong>
                       <small className="mt-1 block max-w-[240px] truncate text-[10px] text-slate-400">{lead.address || lead.category}</small>
+                      {crmRecords[`${lead.source}:${lead.id}`] && (
+                        <span className="mt-1.5 flex flex-wrap gap-1">
+                          <Badge className="bg-blue-50 text-[9px] text-blue-700">{crmRecords[`${lead.source}:${lead.id}`].status}</Badge>
+                          {crmRecords[`${lead.source}:${lead.id}`].seenCount > 1 && (
+                            <Badge className="bg-amber-50 text-[9px] text-amber-700">visto {crmRecords[`${lead.source}:${lead.id}`].seenCount}x</Badge>
+                          )}
+                        </span>
+                      )}
                     </span>
                   </div>
                 </td>
