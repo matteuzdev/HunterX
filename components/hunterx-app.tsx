@@ -14,6 +14,7 @@ import { LeadTable } from "@/components/lead-table";
 import { LeadDetailDrawer } from "@/components/lead-detail-drawer";
 import { PipelineView } from "@/components/pipeline-view";
 import { SegmentIntelligenceView } from "@/components/segment-intelligence-view";
+import { AuthStatus } from "@/components/auth-status";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -212,22 +213,50 @@ export function HunterXApp() {
     setSearchCache(localCache);
     setHydrated(true);
 
-    if (localLeads.length) {
-      void loadSearchSnapshotByQuery(localKeyword, localCity).then(async (existing) => {
-        if (existing?.leads?.length) return;
-        await Promise.all([
-          saveSearchSnapshot({
-            keyword: localKeyword,
-            city: localCity,
-            mode: "live",
-            leads: localLeads,
-          }),
-          syncLeadsToRegistry(localLeads),
-        ]);
+    const localSnapshots = localHistory
+      .map((item) => ({
+        item,
+        leads: localCache[makeQueryKey(item.keyword, item.city)] || [],
+      }))
+      .filter((entry) => entry.leads.length > 0);
+
+    if (
+      localLeads.length &&
+      !localSnapshots.some((entry) => makeQueryKey(entry.item.keyword, entry.item.city) === makeQueryKey(localKeyword, localCity))
+    ) {
+      localSnapshots.unshift({
+        item: {
+          keyword: localKeyword,
+          city: localCity,
+          count: localLeads.length,
+          mode: "live",
+          at: new Date().toISOString(),
+        },
+        leads: localLeads,
+      });
+    }
+
+    if (localSnapshots.length) {
+      void (async () => {
+        for (const snapshot of localSnapshots.slice(0, 50)) {
+          const existing = await loadSearchSnapshotByQuery(snapshot.item.keyword, snapshot.item.city);
+          if (existing?.leads?.length) continue;
+
+          await Promise.all([
+            saveSearchSnapshot({
+              keyword: snapshot.item.keyword,
+              city: snapshot.item.city,
+              mode: snapshot.item.mode || "live",
+              leads: snapshot.leads,
+            }),
+            syncLeadsToRegistry(snapshot.leads),
+          ]);
+        }
+
         const [registry, segments] = await Promise.all([loadLeadRegistry(), loadSegmentInsights()]);
         setCrmRecords(indexCrm(registry));
         setSegmentInsights(segments);
-      });
+      })();
     }
 
     void Promise.all([
@@ -446,7 +475,8 @@ export function HunterXApp() {
             <span className="text-xs font-bold text-slate-700">{title[view]}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="hidden items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-[10px] font-semibold text-slate-500 sm:flex">
+            <AuthStatus />
+            <span className="hidden items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-[10px] font-semibold text-slate-500 xl:flex">
               <span className={"size-1.5 rounded-full " + (runtime?.ok ? "bg-emerald-500" : "bg-slate-300")} />
               {runtime?.provider && runtime.provider !== "mock" ? `Dados reais • ${runtime.provider}` : "Modo demo"}
             </span>
