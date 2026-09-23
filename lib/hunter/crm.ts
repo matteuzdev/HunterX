@@ -86,8 +86,25 @@ export async function updateLeadStage(lead: Lead, status: LeadStage) {
       .select("lead_key,status,seen_count,first_seen_at,last_seen_at,contacted_at,notes,data")
       .maybeSingle();
 
-    if (error || !data) return null;
-    return rowToRecord(data as Record<string, unknown>);
+    if (!error && data) return rowToRecord(data as Record<string, unknown>);
+
+    const { data: inserted, error: insertError } = await supabase
+      .from("lead_registry")
+      .insert({
+        user_id: user.id,
+        lead_key: leadKey,
+        name: lead.name,
+        city: lead.city,
+        source: lead.source,
+        data: lead,
+        status,
+        contacted_at: contacted ? new Date().toISOString() : null,
+      })
+      .select("lead_key,status,seen_count,first_seen_at,last_seen_at,contacted_at,notes,data")
+      .maybeSingle();
+
+    if (insertError || !inserted) return null;
+    return rowToRecord(inserted as Record<string, unknown>);
   } catch {
     return null;
   }
