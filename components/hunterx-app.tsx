@@ -212,6 +212,24 @@ export function HunterXApp() {
     setSearchCache(localCache);
     setHydrated(true);
 
+    if (localLeads.length) {
+      void loadSearchSnapshotByQuery(localKeyword, localCity).then(async (existing) => {
+        if (existing?.leads?.length) return;
+        await Promise.all([
+          saveSearchSnapshot({
+            keyword: localKeyword,
+            city: localCity,
+            mode: "live",
+            leads: localLeads,
+          }),
+          syncLeadsToRegistry(localLeads),
+        ]);
+        const [registry, segments] = await Promise.all([loadLeadRegistry(), loadSegmentInsights()]);
+        setCrmRecords(indexCrm(registry));
+        setSegmentInsights(segments);
+      });
+    }
+
     void Promise.all([
       loadSearchHistorySnapshots(),
       localLeads.length ? Promise.resolve(null) : loadLatestSearchSnapshot(),
@@ -282,6 +300,7 @@ export function HunterXApp() {
 
   async function runSearch(forceRefresh = false) {
     if (!keyword.trim() || !city.trim()) return;
+    if (forceRefresh && !window.confirm("Atualizar dados fará uma NOVA consulta à Apify e poderá consumir créditos. Continuar?")) return;
     setLoading(true);
     setError("");
     setNotice("");
@@ -504,7 +523,7 @@ export function HunterXApp() {
                     </div>
                     <div className="flex gap-2">
                       <Button variant="secondary" size="sm" onClick={() => void runSearch(true)} disabled={loading}>
-                        <RefreshCw className="size-3.5" /> Atualizar dados
+                        <RefreshCw className="size-3.5" /> Atualizar dados • usa crédito
                       </Button>
                       <Button variant="secondary" size="sm" onClick={() => exportCsv(leads)}><Download className="size-3.5" /> Exportar CSV</Button>
                     </div>
