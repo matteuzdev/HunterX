@@ -255,22 +255,6 @@ export function AuthPanel({ initialMode = "login" }: { initialMode?: Mode }) {
         </button>
       </form>
 
-      <div className="my-5 flex items-center gap-3">
-        <div className="h-px flex-1 bg-slate-200" />
-        <span className="text-[9px] font-bold uppercase tracking-[.12em] text-slate-400">ou</span>
-        <div className="h-px flex-1 bg-slate-200" />
-      </div>
-
-      <button
-        type="button"
-        disabled={magicLoading}
-        onClick={() => void magicLink()}
-        className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white text-xs font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-      >
-        {magicLoading ? <Loader2 className="size-4 animate-spin" /> : <Mail className="size-4" />}
-        Receber link de acesso por e-mail
-      </button>
-
       <p className="mt-5 text-center text-[10px] leading-5 text-slate-400">
         Ao continuar, você concorda em usar o HunterX para prospecção responsável e respeitar os termos das plataformas consultadas.
       </p>
