@@ -1,11 +1,12 @@
 "use client";
 
 import {
-  BellRing,
   Clock3,
   Command,
   CreditCard,
   Gauge,
+  Crosshair,
+  Coins,
   Heart,
   MessageSquareText,
   FileSpreadsheet,
@@ -17,16 +18,18 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type ViewName = "dashboard" | "search" | "history" | "history-detail" | "pipeline" | "segments" | "favorites" | "exports" | "messages" | "settings";
+export type ViewName = "dashboard" | "focus" | "search" | "history" | "history-detail" | "pipeline" | "segments" | "favorites" | "exports" | "tokens" | "messages" | "settings";
 
 const items = [
   { id: "dashboard" as const, label: "Visão geral", icon: Gauge },
+  { id: "focus" as const, label: "Focus", icon: Crosshair },
   { id: "search" as const, label: "Buscar leads", icon: Search },
   { id: "history" as const, label: "Histórico", icon: Clock3 },
   { id: "pipeline" as const, label: "Pipeline", icon: Workflow },
   { id: "segments" as const, label: "Segmentos", icon: BarChart3 },
   { id: "favorites" as const, label: "Favoritos", icon: Heart },
   { id: "exports" as const, label: "Exportações", icon: FileSpreadsheet },
+  { id: "tokens" as const, label: "Tokens", icon: Coins },
   { id: "messages" as const, label: "WhatsApp", icon: MessageSquareText },
 ];
 
@@ -36,12 +39,14 @@ export function Sidebar({
   favorites,
   searches,
   exportsCount = 0,
+  tokens = 0,
 }: {
   view: ViewName;
   onChange: (view: ViewName) => void;
   favorites: number;
   searches: number;
   exportsCount?: number;
+  tokens?: number;
 }) {
   return (
     <aside className="hidden h-screen w-[270px] shrink-0 border-r border-white/5 bg-[#0b1120] p-4 text-slate-300 lg:flex lg:flex-col">
@@ -76,6 +81,9 @@ export function Sidebar({
               {item.id === "exports" && exportsCount > 0 && (
                 <span className="ml-auto rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-300">{exportsCount}</span>
               )}
+              {item.id === "tokens" && (
+                <span className="ml-auto rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-300">{tokens}</span>
+              )}
             </button>
           );
         })}
@@ -93,20 +101,18 @@ export function Sidebar({
 
       <div className="mt-auto rounded-2xl border border-white/[.08] bg-white/[.04] p-4">
         <div className="mb-3 flex items-center justify-between">
-          <span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.14em] text-blue-300">
-            <Sparkles className="size-3.5" /> Plano Pro
+          <span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.14em] text-amber-300">
+            <Coins className="size-3.5" /> Saldo Engine
           </span>
           <CreditCard className="size-4 text-slate-500" />
         </div>
         <div className="flex items-end justify-between">
-          <span className="text-xs text-slate-400">Buscas usadas</span>
-          <strong className="text-sm text-white">{searches}/100</strong>
+          <span className="text-xs text-slate-400">Tokens disponíveis</span>
+          <strong className="text-lg text-white">{tokens}</strong>
         </div>
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[.08]">
-          <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400" style={{ width: `${Math.min(100, searches)}%` }} />
-        </div>
-        <button className="mt-4 flex h-9 w-full items-center justify-center gap-2 rounded-xl border border-white/[.08] text-xs font-semibold text-slate-300 hover:bg-white/[.04]">
-          <BellRing className="size-3.5" /> Gerenciar plano
+        <div className="mt-2 text-[10px] text-slate-500">≈ {Math.floor(tokens / 20)} lotes de 20 empresas</div>
+        <button onClick={() => onChange("tokens")} className="mt-4 flex h-9 w-full items-center justify-center gap-2 rounded-xl border border-white/[.08] text-xs font-semibold text-slate-300 hover:bg-white/[.04]">
+          <Sparkles className="size-3.5" /> Comprar tokens
         </button>
       </div>
     </aside>

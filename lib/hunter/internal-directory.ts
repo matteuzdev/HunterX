@@ -23,54 +23,83 @@ type DirectoryRow = {
   source: string;
   last_seen_at: string;
   last_crawled_at: string | null;
+  token_balance?: number | null;
 };
 
 function clamp(value: unknown, max = 120) {
   return String(value ?? "").trim().slice(0, max);
 }
 
-export async function searchHunterDirectory(
+function mapDirectoryRow(row: DirectoryRow, keyword: string, city: string): Lead {
+  const location = [row.city, row.state].filter(Boolean).join(", ");
+  const base = {
+    id: row.business_key,
+    name: row.name || "Empresa",
+    category: row.category || keyword,
+    city: location || city,
+    address: row.address || "",
+    phone: row.phone || "",
+    website: row.website || "",
+    email: row.email || "",
+    rating: Number(row.rating || 0),
+    reviews: Number(row.reviews || 0),
+    businessStatus: row.business_status || "OPERATIONAL",
+    socials: row.socials || {},
+    latitude: row.latitude ?? undefined,
+    longitude: row.longitude ?? undefined,
+    source: "hunter" as const,
+  };
+  return { ...base, ...scoreLead(base) };
+}
+
+export async function countHunterDirectoryMatches(rawKeyword: unknown, rawCity: unknown, limit = 20) {
+  const keyword = clamp(rawKeyword);
+  const city = clamp(rawCity);
+  if (!keyword || !city) return 0;
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return 0;
+
+  const { data, error } = await supabase.rpc("count_hunter_directory_matches", {
+    p_keyword: keyword,
+    p_city: city,
+    p_limit: Math.min(Math.max(limit, 1), 20),
+  });
+
+  if (error) return 0;
+  return Number(data || 0);
+}
+
+export async function searchHunterDirectoryMetered(
   rawKeyword: unknown,
   rawCity: unknown,
   limit = 20,
-): Promise<Lead[]> {
+  reference = "",
+): Promise<{ leads: Lead[]; tokenBalance: number | null }> {
   const keyword = clamp(rawKeyword);
   const city = clamp(rawCity);
-  if (!keyword || !city) return [];
+  if (!keyword || !city) return { leads: [], tokenBalance: null };
 
   const supabase = await createSupabaseServerClient();
-  if (!supabase) return [];
+  if (!supabase) return { leads: [], tokenBalance: null };
 
-  const { data, error } = await supabase.rpc("search_hunter_directory", {
+  const { data, error } = await supabase.rpc("search_hunter_directory_metered", {
     p_keyword: keyword,
     p_city: city,
-    p_limit: Math.min(Math.max(limit, 1), 50),
+    p_limit: Math.min(Math.max(limit, 1), 20),
+    p_reference: reference,
   });
 
-  if (error || !Array.isArray(data)) return [];
+  if (error) {
+    if (/INSUFFICIENT_TOKENS/i.test(error.message)) throw new Error("INSUFFICIENT_TOKENS");
+    throw new Error(error.message);
+  }
 
-  return (data as DirectoryRow[]).map((row) => {
-    const location = [row.city, row.state].filter(Boolean).join(", ");
-    const base = {
-      id: row.business_key,
-      name: row.name || "Empresa",
-      category: row.category || keyword,
-      city: location || city,
-      address: row.address || "",
-      phone: row.phone || "",
-      website: row.website || "",
-      email: row.email || "",
-      rating: Number(row.rating || 0),
-      reviews: Number(row.reviews || 0),
-      businessStatus: row.business_status || "OPERATIONAL",
-      socials: row.socials || {},
-      latitude: row.latitude ?? undefined,
-      longitude: row.longitude ?? undefined,
-      source: "hunter" as const,
-    };
-
-    return { ...base, ...scoreLead(base) };
-  });
+  const rows = Array.isArray(data) ? data as DirectoryRow[] : [];
+  return {
+    leads: rows.map((row) => mapDirectoryRow(row, keyword, city)),
+    tokenBalance: rows.length ? Number(rows[0].token_balance ?? 0) : null,
+  };
 }
 
 export function dedupeLeads(leads: Lead[]) {

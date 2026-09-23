@@ -19,7 +19,6 @@ export function AuthPanel({ initialMode = "login" }: { initialMode?: Mode }) {
   const [showPassword, setShowPassword] = useState(false);
   const [legacySession, setLegacySession] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [magicLoading, setMagicLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -112,7 +111,6 @@ export function AuthPanel({ initialMode = "login" }: { initialMode?: Mode }) {
       setError("Digite seu e-mail primeiro.");
       return;
     }
-    setMagicLoading(true);
     try {
       const supabase = await leaveLegacySessionIfNeeded();
       const { error: magicError } = await supabase.auth.signInWithOtp({
@@ -127,7 +125,7 @@ export function AuthPanel({ initialMode = "login" }: { initialMode?: Mode }) {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Não foi possível enviar o link.");
     } finally {
-      setMagicLoading(false);
+      // Feedback is shown inline.
     }
   }
 
@@ -137,7 +135,6 @@ export function AuthPanel({ initialMode = "login" }: { initialMode?: Mode }) {
       setError("Digite seu e-mail para recuperar a senha.");
       return;
     }
-    setMagicLoading(true);
     try {
       const supabase = createSupabaseBrowserClient();
       if (!supabase) throw new Error("Supabase não configurado.");
@@ -149,7 +146,7 @@ export function AuthPanel({ initialMode = "login" }: { initialMode?: Mode }) {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Não foi possível iniciar a recuperação.");
     } finally {
-      setMagicLoading(false);
+      // Feedback is shown inline.
     }
   }
 

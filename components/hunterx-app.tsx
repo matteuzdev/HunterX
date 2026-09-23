@@ -17,6 +17,8 @@ import { SegmentIntelligenceView } from "@/components/segment-intelligence-view"
 import { HistoryDetailView } from "@/components/history-detail-view";
 import { BulkWhatsAppPanel } from "@/components/bulk-whatsapp-panel";
 import { ExportsView } from "@/components/exports-view";
+import { FocusView } from "@/components/focus-view";
+import { TokensView } from "@/components/tokens-view";
 import { AuthStatus } from "@/components/auth-status";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +33,12 @@ import {
 import { loadLeadRegistry, makeLeadKey, syncLeadsToRegistry, updateLeadStage } from "@/lib/hunter/crm";
 import { loadSegmentInsights } from "@/lib/hunter/segments";
 import { loadExportLogs, logExport, type ExportLog } from "@/lib/hunter/exports";
+import {
+  loadHunterAccount,
+  loadTokenPackages,
+  type HunterAccount,
+  type TokenPackage,
+} from "@/lib/hunter/account";
 
 type RuntimeStatus = {
   ok: boolean;
@@ -203,6 +211,8 @@ export function HunterXApp() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkLeads, setBulkLeads] = useState<Lead[]>([]);
   const [exportLogs, setExportLogs] = useState<ExportLog[]>([]);
+  const [account, setAccount] = useState<HunterAccount | null>(null);
+  const [tokenPackages, setTokenPackages] = useState<TokenPackage[]>([]);
 
   useEffect(() => {
     const localFavorites = parse<Record<string, Lead>>(localStorage.getItem("hunterx-favorites"), {});
@@ -299,6 +309,11 @@ export function HunterXApp() {
       }
     });
 
+    void Promise.all([loadHunterAccount(), loadTokenPackages()]).then(([hunterAccount, packages]) => {
+      setAccount(hunterAccount);
+      setTokenPackages(packages);
+    });
+
     fetch("/api/health", { cache: "no-store" }).then((r) => r.json()).then(setRuntime).catch(() => null);
   }, []);
 
@@ -378,6 +393,10 @@ export function HunterXApp() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Falha na busca");
 
+      if (typeof data.tokenBalance === "number") {
+        setAccount((current) => current ? { ...current, balance: data.tokenBalance } : current);
+      }
+
       const freshLeads = (data.leads || []) as Lead[];
       setLeads(freshLeads);
       setSearchCache((current) => {
@@ -430,6 +449,8 @@ export function HunterXApp() {
     const updated = await updateLeadStage(lead, stage);
     if (!updated) return;
     setCrmRecords((current) => ({ ...current, [updated.leadKey]: updated }));
+    const refreshed = await loadHunterAccount();
+    if (refreshed) setAccount(refreshed);
   }
 
   async function handleExport(targetLeads: Lead[]) {
@@ -479,6 +500,7 @@ export function HunterXApp() {
 
   const title: Record<ViewName, string> = {
     dashboard: "Visão geral",
+    focus: "Focus",
     search: "Buscar leads",
     history: "Histórico",
     "history-detail": "Detalhes da busca",
@@ -486,13 +508,21 @@ export function HunterXApp() {
     segments: "Inteligência de segmentos",
     favorites: "Favoritos",
     exports: "Exportações",
+    tokens: "Tokens",
     messages: "WhatsApp",
     settings: "Configurações",
   };
 
   return (
     <div className="flex min-h-screen bg-[#f6f8fc] text-slate-900">
-      <Sidebar view={view} onChange={setView} favorites={Object.keys(favorites).length} searches={searches} exportsCount={exportLogs.length} />
+      <Sidebar
+        view={view}
+        onChange={setView}
+        favorites={Object.keys(favorites).length}
+        searches={searches}
+        exportsCount={exportLogs.length}
+        tokens={account?.balance || 0}
+      />
 
       <main className="min-w-0 flex-1">
         <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-xl md:px-7">
@@ -513,6 +543,22 @@ export function HunterXApp() {
         <div className="mx-auto w-full max-w-[1540px] p-4 md:p-7 xl:p-8">
           {view === "dashboard" && (
             <Dashboard searches={searches} leads={leads} history={history} onSearch={() => setView("search")} />
+          )}
+
+          {view === "focus" && account && (
+            <FocusView
+              account={account}
+              records={Object.values(crmRecords)}
+              onAccountChange={setAccount}
+              onStartBatch={(records) => {
+                setBulkLeads(records.slice(0, 20).map((record) => record.lead));
+                setBulkOpen(true);
+              }}
+            />
+          )}
+
+          {view === "focus" && !account && (
+            <Card className="p-8 text-center text-sm text-slate-400">Carregando sua meta e saldo...</Card>
           )}
 
           {view === "search" && (
@@ -540,7 +586,7 @@ export function HunterXApp() {
                     </div>
                   </label>
                   <Button className="mt-auto" onClick={() => void runSearch(false)} disabled={loading}>
-                    {loading ? <><WandSparkles className="size-4 animate-pulse" /> Carregando…</> : <><Search className="size-4" /> Buscar / abrir salvo <ArrowRight className="size-4" /></>}
+                    {loading ? <><WandSparkles className="size-4 animate-pulse" /> Carregando…</> : <><Search className="size-4" /> Buscar / abrir salvo • até 20 tokens <ArrowRight className="size-4" /></>}
                   </Button>
                 </div>
                 {notice && <div className="mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">{notice}</div>}
@@ -651,6 +697,14 @@ export function HunterXApp() {
 
           {view === "exports" && (
             <ExportsView logs={exportLogs} />
+          )}
+
+          {view === "tokens" && account && (
+            <TokensView account={account} packages={tokenPackages} />
+          )}
+
+          {view === "tokens" && !account && (
+            <Card className="p-8 text-center text-sm text-slate-400">Carregando sua carteira...</Card>
           )}
 
           {view === "messages" && (
