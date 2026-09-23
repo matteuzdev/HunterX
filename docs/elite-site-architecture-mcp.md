@@ -1,27 +1,39 @@
-# Elite Site Architecture MCP
+# HunterX MCP
 
-Remote MCP endpoint hosted with HunterX:
+Remote MCP endpoint:
 
 ```
 https://gohunterx.vercel.app/api/mcp
 ```
 
-Transport: Streamable HTTP via `mcp-handler` 2.x.
+This MCP exposes the HunterX product itself, not the website-building skill.
 
 ## Tools
 
-- `get_elite_site_skill`
-- `prepare_site_brief`
-- `audit_site_draft`
-- `build_site_prompt`
+- `get_account`
+- `search_leads`
+- `list_search_history`
+- `get_saved_search`
+- `list_pipeline`
+- `update_lead_stage`
+- `get_segment_insights`
 
-All tools are read-only. The MCP does not modify repositories, deploy sites or store client data.
+## Authentication
 
-The canonical reusable skill also lives in:
+OAuth 2.1 is delegated to Supabase Auth, using the HunterX user account and existing RLS policies.
 
-- `HunterX/skills/elite-site-architecture/SKILL.md`
-- `research-before-build/skills/elite-site-architecture/SKILL.md`
+Protected resource metadata:
 
-## ChatGPT
+```
+https://gohunterx.vercel.app/.well-known/oauth-protected-resource
+```
 
-When custom MCP/app connections are available in the account/workspace, add the remote MCP URL in Developer Mode / custom app setup.
+Authorization UI:
+
+```
+https://gohunterx.vercel.app/oauth/authorize
+```
+
+Supabase OAuth Server must be enabled with the authorization path above. MCP clients can then discover the authorization server from the protected-resource metadata endpoint.
+
+The separate `elite-site-architecture` skill remains available in the repository, but it is not exposed through this MCP.

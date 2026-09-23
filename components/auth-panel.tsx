@@ -3,15 +3,27 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowRight, CheckCircle2, Eye, EyeOff, KeyRound, Loader2,
+  ArrowRight, Eye, EyeOff, KeyRound, Loader2,
   LockKeyhole, Mail, ShieldCheck, Sparkles
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type Mode = "login" | "signup";
 
-export function AuthPanel({ initialMode = "login" }: { initialMode?: Mode }) {
+function safeNext(value?: string) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/app";
+  return value;
+}
+
+export function AuthPanel({
+  initialMode = "login",
+  nextPath = "/app",
+}: {
+  initialMode?: Mode;
+  nextPath?: string;
+}) {
   const router = useRouter();
+  const destination = safeNext(nextPath);
   const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,24 +39,13 @@ export function AuthPanel({ initialMode = "login" }: { initialMode?: Mode }) {
     if (!supabase) return;
     void supabase.auth.getUser().then(({ data }) => {
       setLegacySession(Boolean(data.user?.is_anonymous));
-      if (data.user && !data.user.is_anonymous) router.replace("/app");
+      if (data.user && !data.user.is_anonymous) router.replace(destination);
     });
-  }, [router]);
+  }, [router, destination]);
 
   function clearFeedback() {
     setError("");
     setMessage("");
-  }
-
-  async function leaveLegacySessionIfNeeded() {
-    const supabase = createSupabaseBrowserClient();
-    if (!supabase) throw new Error("Supabase não configurado.");
-    const { data } = await supabase.auth.getUser();
-    if (data.user?.is_anonymous) {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-    }
-    return supabase;
   }
 
   async function submit(event: React.FormEvent) {
@@ -62,70 +63,60 @@ export function AuthPanel({ initialMode = "login" }: { initialMode?: Mode }) {
 
     setLoading(true);
     try {
-      const supabase = await leaveLegacySessionIfNeeded();
+      const supabase = createSupabaseBrowserClient();
+      if (!supabase) throw new Error("Supabase não configurado.");
 
       if (mode === "login") {
+        const { data: current } = await supabase.auth.getUser();
+        if (current.user?.is_anonymous) await supabase.auth.signOut();
+
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
         });
         if (signInError) throw signInError;
-        window.location.href = "/app";
+        window.location.href = destination;
         return;
       }
 
-      const callback = `${window.location.origin}/auth/callback?next=/app`;
-      const { data, error: signUpError } = await supabase.auth.signUp({
+      const { data: sessionData } = await supabase.auth.getSession();
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+      if (!supabaseUrl || !publishableKey) throw new Error("Configuração de cadastro indisponível.");
+
+      const signupResponse = await fetch(`${supabaseUrl}/functions/v1/hunter-signup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: publishableKey,
+          ...(sessionData.session?.access_token
+            ? { Authorization: `Bearer ${sessionData.session.access_token}` }
+            : {}),
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+          name: name.trim(),
+        }),
+      });
+
+      const signup = await signupResponse.json().catch(() => ({}));
+      if (!signupResponse.ok) {
+        throw new Error(signup.error || "Não foi possível criar a conta.");
+      }
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
-        options: {
-          emailRedirectTo: callback,
-          data: { full_name: name.trim() || undefined },
-        },
       });
-      if (signUpError) throw signUpError;
+      if (signInError) throw signInError;
 
-      if (data.session) {
-        window.location.href = "/app";
-        return;
-      }
-
-      setMessage("Conta criada. Confira seu e-mail para confirmar o acesso e depois entre no HunterX.");
+      window.location.href = destination;
     } catch (cause) {
       const text = cause instanceof Error ? cause.message : "Não foi possível concluir o acesso.";
-      setError(
-        /Invalid login credentials/i.test(text)
-          ? "E-mail ou senha incorretos."
-          : /Email not confirmed/i.test(text)
-            ? "Confirme seu e-mail antes de entrar."
-            : text
-      );
+      setError(/Invalid login credentials/i.test(text) ? "E-mail ou senha incorretos." : text);
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function magicLink() {
-    clearFeedback();
-    if (!email.trim()) {
-      setError("Digite seu e-mail primeiro.");
-      return;
-    }
-    try {
-      const supabase = await leaveLegacySessionIfNeeded();
-      const { error: magicError } = await supabase.auth.signInWithOtp({
-        email: email.trim(),
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/app`,
-          shouldCreateUser: true,
-        },
-      });
-      if (magicError) throw magicError;
-      setMessage("Link de acesso enviado. Abra o e-mail neste dispositivo para entrar.");
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Não foi possível enviar o link.");
-    } finally {
-      // Feedback is shown inline.
     }
   }
 
@@ -145,8 +136,6 @@ export function AuthPanel({ initialMode = "login" }: { initialMode?: Mode }) {
       setMessage("Enviamos um link para redefinir sua senha.");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Não foi possível iniciar a recuperação.");
-    } finally {
-      // Feedback is shown inline.
     }
   }
 
@@ -162,7 +151,7 @@ export function AuthPanel({ initialMode = "login" }: { initialMode?: Mode }) {
         <p className="mt-2 text-sm leading-6 text-slate-500">
           {mode === "login"
             ? "Seu histórico, pipeline e inteligência comercial continuam no mesmo lugar."
-            : "Crie sua conta para manter buscas, leads e pipeline vinculados ao seu acesso."}
+            : "Crie a conta e entre imediatamente. Não há etapa de confirmação por e-mail."}
         </p>
       </div>
 
@@ -173,7 +162,7 @@ export function AuthPanel({ initialMode = "login" }: { initialMode?: Mode }) {
             <div>
               <strong className="block text-xs text-amber-900">Detectamos dados salvos neste navegador</strong>
               <p className="mt-1 text-[11px] leading-5 text-amber-700">
-                Ao entrar ou criar sua conta, o HunterX importa as buscas locais preservadas para o seu workspace sem consultar a Apify novamente.
+                Ao criar a conta, o HunterX transfere os dados preservados para o novo workspace sem consultar a Apify novamente.
               </p>
             </div>
           </div>
@@ -181,16 +170,10 @@ export function AuthPanel({ initialMode = "login" }: { initialMode?: Mode }) {
       )}
 
       <div className="mb-5 grid grid-cols-2 rounded-2xl bg-slate-100 p-1">
-        <button
-          onClick={() => { setMode("login"); clearFeedback(); }}
-          className={`h-10 rounded-xl text-xs font-bold transition ${mode === "login" ? "bg-white text-slate-950 shadow-sm" : "text-slate-500"}`}
-        >
+        <button type="button" onClick={() => { setMode("login"); clearFeedback(); }} className={`h-10 rounded-xl text-xs font-bold transition ${mode === "login" ? "bg-white text-slate-950 shadow-sm" : "text-slate-500"}`}>
           Entrar
         </button>
-        <button
-          onClick={() => { setMode("signup"); clearFeedback(); }}
-          className={`h-10 rounded-xl text-xs font-bold transition ${mode === "signup" ? "bg-white text-slate-950 shadow-sm" : "text-slate-500"}`}
-        >
+        <button type="button" onClick={() => { setMode("signup"); clearFeedback(); }} className={`h-10 rounded-xl text-xs font-bold transition ${mode === "signup" ? "bg-white text-slate-950 shadow-sm" : "text-slate-500"}`}>
           Criar conta
         </button>
       </div>
@@ -239,25 +222,14 @@ export function AuthPanel({ initialMode = "login" }: { initialMode?: Mode }) {
           </div>
         </label>
 
-        {message && (
-          <div className="flex gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-[11px] leading-5 text-emerald-700">
-            <CheckCircle2 className="mt-0.5 size-4 shrink-0" /> {message}
-          </div>
-        )}
+        {message && <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-[11px] leading-5 text-emerald-700">{message}</div>}
         {error && <div className="rounded-2xl border border-rose-100 bg-rose-50 p-3 text-[11px] leading-5 text-rose-700">{error}</div>}
 
-        <button
-          disabled={loading}
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 text-sm font-black text-white shadow-lg shadow-slate-900/10 transition hover:bg-blue-600 disabled:cursor-wait disabled:opacity-70"
-        >
+        <button disabled={loading} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 text-sm font-black text-white transition hover:bg-blue-600 disabled:opacity-70">
           {loading ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
           {loading ? "Processando..." : mode === "login" ? "Entrar no HunterX" : "Criar conta"}
         </button>
       </form>
-
-      <p className="mt-5 text-center text-[10px] leading-5 text-slate-400">
-        Ao continuar, você concorda em usar o HunterX para prospecção responsável e respeitar os termos das plataformas consultadas.
-      </p>
     </div>
   );
 }

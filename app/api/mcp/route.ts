@@ -1,252 +1,182 @@
-import { createMcpHandler } from "mcp-handler";
+import type { AuthInfo } from "@modelcontextprotocol/server";
+import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { z } from "zod";
 import {
-  ELITE_SITE_SECTIONS,
-  ELITE_SITE_SKILL,
-  type EliteSiteSection,
-} from "@/lib/mcp/elite-site-architecture";
+  createMcpSupabaseClient,
+  getHunterAccount,
+  getSavedSearch,
+  getSegmentInsights,
+  listPipeline,
+  listSearchHistory,
+  searchHunterXForUser,
+  updatePipelineStage,
+  verifyMcpUser,
+} from "@/lib/mcp/hunterx";
+import type { LeadStage } from "@/lib/hunter/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 30;
+export const maxDuration = 60;
 
-function text(value: string) {
-  return { content: [{ type: "text" as const, text: value }] };
+function response(value: unknown) {
+  return {
+    content: [{
+      type: "text" as const,
+      text: JSON.stringify(value, null, 2),
+    }],
+  };
 }
 
-function clean(value?: string) {
-  return (value || "").trim();
+function context(ctx: { http?: { authInfo?: AuthInfo } }) {
+  const auth = ctx.http?.authInfo;
+  const token = auth?.token;
+  const userId = String(auth?.extra?.userId || "");
+  if (!token || !userId) throw new Error("Sessão HunterX não autenticada.");
+  return { token, userId, supabase: createMcpSupabaseClient(token) };
 }
 
-function bullet(label: string, value?: string) {
-  return value?.trim() ? `- **${label}:** ${value.trim()}` : `- **${label}:** não informado`;
-}
+const stages = [
+  "novo", "analisado", "demonstracao", "contatado",
+  "respondeu", "negociacao", "cliente", "perdido",
+] as const;
 
 const handler = createMcpHandler((server) => {
   server.registerTool(
-    "get_elite_site_skill",
+    "get_account",
     {
-      title: "Get Elite Site Architecture",
-      description:
-        "Returns the reusable premium website/landing-page architecture standard used for client sites. Use before planning, designing, writing copy or building a website.",
-      inputSchema: z.object({
-        section: z
-          .enum(["full", "research", "visual", "copy", "mobile", "technical", "delivery"])
-          .default("full"),
-      }),
+      title: "Ver conta HunterX",
+      description: "Mostra plano, saldo de tokens e configurações principais da conta HunterX conectada.",
+      inputSchema: z.object({}),
     },
-    async ({ section }) => {
-      if (section === "full") return text(ELITE_SITE_SKILL);
-      return text(ELITE_SITE_SECTIONS[section as EliteSiteSection]);
+    async (_, ctx) => {
+      const { supabase } = context(ctx);
+      return response(await getHunterAccount(supabase));
     },
   );
 
   server.registerTool(
-    "prepare_site_brief",
+    "search_leads",
     {
-      title: "Prepare Premium Site Brief",
-      description:
-        "Structures verified business information into a build-ready brief without inventing missing facts.",
+      title: "Buscar leads no HunterX",
+      description: "Executa uma busca real do HunterX por nicho/palavra-chave e cidade. Usa Hunter Engine primeiro e fallback quando necessário. Salva a busca no histórico e registra os leads no CRM. Uma nova coleta pode consumir tokens; contas Owner ilimitadas não sofrem débito.",
       inputSchema: z.object({
-        name: z.string().min(1),
-        cityState: z.string().optional(),
-        whatsapp: z.string().optional(),
-        instagram: z.string().optional(),
-        currentSite: z.string().optional(),
-        googleReputation: z.string().optional(),
-        services: z.string().optional(),
-        differentiators: z.string().optional(),
-        brandAssets: z.string().optional(),
-        conversionGoal: z.string().optional(),
-        references: z.string().optional(),
-        audience: z.string().optional(),
+        keyword: z.string().min(1).max(120),
+        city: z.string().min(1).max(120),
+        limit: z.number().int().min(1).max(20).default(20),
       }),
     },
-    async (input) => {
-      const missing = Object.entries(input)
-        .filter(([key, value]) => key !== "name" && !clean(value))
-        .map(([key]) => key);
-
-      return text(`# Site Brief — ${input.name}
-
-## Verified business evidence
-${bullet("City/state", input.cityState)}
-${bullet("Commercial WhatsApp", input.whatsapp)}
-${bullet("Instagram", input.instagram)}
-${bullet("Current site", input.currentSite)}
-${bullet("Google/reputation evidence", input.googleReputation)}
-${bullet("Main services", input.services)}
-${bullet("Differentiators", input.differentiators)}
-${bullet("Brand colors/assets", input.brandAssets)}
-${bullet("Audience", input.audience)}
-${bullet("Primary conversion goal", input.conversionGoal)}
-${bullet("Reference sites/components", input.references)}
-
-## Art direction
-- Build a centered, cinematic first impression rather than the default copy-left/image-right AI layout.
-- Establish one visual anchor, then support it with restrained glass/info cards.
-- Use hierarchical bento composition for services/capabilities.
-- Use tabs only if they improve comparison.
-- Use vector icons consistently; no decorative emoji.
-- Motion must reinforce hierarchy and feedback, not decorate randomly.
-
-## Copy direction
-- Speak to concrete pains, outcomes and objections.
-- Use verified differentiators only.
-- Avoid vague claims such as "a melhor escolha" or "soluções completas".
-- Apply CBVL when useful, without guarantees or fabricated urgency.
-
-## Mobile and technical
-- Mobile-first; no overflow; thumb-friendly interactions.
-- Preserve the project's established stack.
-- Include local SEO, Open Graph, verified Schema.org, accessibility and responsive assets.
-
-## Missing evidence — do not invent
-${missing.length ? missing.map((item) => `- ${item}`).join("\n") : "- none"}
-
-## Delivery gate
-Use the Elite Site Architecture checklist before shipping.`);
+    async ({ keyword, city, limit }, ctx) => {
+      const { supabase, userId } = context(ctx);
+      return response(await searchHunterXForUser(supabase, userId, keyword, city, limit));
     },
   );
 
   server.registerTool(
-    "audit_site_draft",
+    "list_search_history",
     {
-      title: "Audit Site Draft",
-      description:
-        "Checks a site plan, copy draft or implementation description against the Elite Site Architecture rules and returns concrete warnings.",
+      title: "Listar histórico HunterX",
+      description: "Lista as buscas salvas da conta conectada. Reabrir uma busca salva não dispara nova coleta.",
       inputSchema: z.object({
-        draft: z.string().min(20),
-        hasVerifiedTestimonials: z.boolean().default(false),
-        stack: z.string().optional(),
+        limit: z.number().int().min(1).max(100).default(30),
       }),
     },
-    async ({ draft, hasVerifiedTestimonials, stack }) => {
-      const value = draft.toLowerCase();
-      const findings: string[] = [];
-      const passes: string[] = [];
-
-      const genericPhrases = [
-        "somos apaixonados",
-        "soluções completas",
-        "líderes com excelência",
-        "a melhor escolha",
-        "transformamos sonhos",
-      ].filter((phrase) => value.includes(phrase));
-
-      if (genericPhrases.length) {
-        findings.push(`Generic copy detected: ${genericPhrases.join(", ")}. Replace with concrete business-specific language.`);
-      } else passes.push("No banned generic copy phrases detected.");
-
-      if (/emoji|🚀|🔥|✨|💎|✅|⭐/.test(draft)) {
-        findings.push("Decorative emoji detected. Prefer consistent vector icons in the site body.");
-      } else passes.push("No obvious decorative emoji usage detected.");
-
-      if (/left.{0,40}(image|photo)|copy.{0,40}left|image.{0,40}right|duas colunas|two-column hero/i.test(draft)) {
-        findings.push("Possible clichéd two-column hero. Re-evaluate whether a centered cinematic/showcase composition would create stronger hierarchy.");
-      }
-
-      if (/(testimonial|depoimento|avaliaç|review)/i.test(draft) && !hasVerifiedTestimonials) {
-        findings.push("Social proof is mentioned but verified testimonials were not confirmed. Remove it or replace it with proof of process/portfolio.");
-      } else if (hasVerifiedTestimonials) passes.push("Social proof was marked as verified.");
-
-      if (!/(mobile|responsiv|320|375|390|768|drawer)/i.test(draft)) {
-        findings.push("Mobile behavior is not explicit. Define responsive widths, navigation behavior and overflow prevention.");
-      } else passes.push("Mobile/responsive behavior is mentioned.");
-
-      if (!/(seo|meta description|open graph|schema|json-ld)/i.test(draft)) {
-        findings.push("SEO metadata / structured data are not explicit.");
-      } else passes.push("SEO/metadata considerations are present.");
-
-      if (!/(cta|whatsapp|form|orçamento|contato|conversion|conversão)/i.test(draft)) {
-        findings.push("Primary conversion path is unclear. Define a concrete CTA and destination.");
-      } else passes.push("A conversion path is mentioned.");
-
-      if (!/(bento|hierarquia|hierarchical|anchor card|card principal)/i.test(draft)) {
-        findings.push("Section hierarchy may be too flat. Consider a clear anchor card / hierarchical bento instead of equal cards.");
-      }
-
-      return text(`# Elite Site Audit
-
-**Stack/context:** ${clean(stack) || "not specified"}
-
-## Warnings
-${findings.length ? findings.map((item) => `- ${item}`).join("\n") : "- No major heuristic warnings detected."}
-
-## Passes
-${passes.map((item) => `- ${item}`).join("\n")}
-
-## Final rule
-This is a heuristic audit, not proof of visual quality. Compare the actual rendered site against the full Elite Site Architecture skill before shipping.`);
+    async ({ limit }, ctx) => {
+      const { supabase } = context(ctx);
+      return response(await listSearchHistory(supabase, limit));
     },
   );
 
   server.registerTool(
-    "build_site_prompt",
+    "get_saved_search",
     {
-      title: "Build Site Construction Prompt",
-      description:
-        "Returns a reusable construction prompt for a premium site using the Elite Site Architecture standard and the supplied verified business brief.",
+      title: "Abrir busca salva",
+      description: "Recupera os leads da busca salva mais recente para o nicho/palavra-chave e cidade informados, sem refazer a coleta.",
       inputSchema: z.object({
-        businessBrief: z.string().min(20),
-        stack: z.enum(["auto", "html-css-js", "nextjs", "react"]).default("auto"),
-        goal: z.string().optional(),
-        extraConstraints: z.string().optional(),
+        keyword: z.string().min(1).max(120),
+        city: z.string().min(1).max(120),
       }),
     },
-    async ({ businessBrief, stack, goal, extraConstraints }) => {
-      const stackRule =
-        stack === "html-css-js"
-          ? "Use semantic HTML5, CSS custom properties and clean Vanilla JS. Avoid framework overhead."
-          : stack === "nextjs"
-            ? "Use the existing Next.js architecture and React conventions. Do not rewrite to another stack."
-            : stack === "react"
-              ? "Use the existing React architecture. Keep components purposeful and avoid unnecessary abstraction."
-              : "Preserve the established project stack. For a lightweight greenfield local-business site, HTML/CSS/Vanilla JS is an acceptable default.";
-
-      return text(`# Construction Prompt — Elite Site Architecture
-
-You are building a premium website/landing page from verified business evidence.
-
-## Verified brief
-${businessBrief}
-
-## Primary goal
-${clean(goal) || "Generate qualified commercial contact without fabricated claims."}
-
-## Stack
-${stackRule}
-
-## Non-negotiable art direction
-- Centered cinematic first impression with strong editorial hierarchy.
-- Avoid the default copy-left / rounded-image-right AI hero.
-- One dominant visual/showcase anchor; up to two restrained glass information cards.
-- Hierarchical bento sections instead of repetitive equal-card grids.
-- Interactive tabs only when comparison genuinely benefits the user.
-- Purposeful motion only: reveal, hover depth, subtle parallax or state transitions.
-- No decorative emoji; use consistent SVG/vector icons.
-- No invented reviews, clients, ratings, awards, CNPJ, photos or metrics.
-
-## Copy
-- Concrete pains, outcomes and objections.
-- CBVL when useful: Característica → Benefício lógico → Vantagem → Ligação emocional.
-- Never use guarantees or fake urgency.
-- Remove generic phrases that could belong to any business.
-
-## Mobile and technical
-- Mobile-first with no horizontal overflow.
-- Thumb-friendly CTAs and polished drawer navigation.
-- Local-intent meta description, Open Graph and verified Schema.org.
-- Accessible headings, labels, focus states and contrast.
-- Responsive, optimized assets.
-
-## Extra constraints
-${clean(extraConstraints) || "None."}
-
-## Delivery
-Produce a build plan first, then implementation. Before finishing, audit the rendered result against Elite Site Architecture and explicitly list any missing evidence instead of inventing it.`);
+    async ({ keyword, city }, ctx) => {
+      const { supabase } = context(ctx);
+      return response(await getSavedSearch(supabase, keyword, city));
     },
   );
+
+  server.registerTool(
+    "list_pipeline",
+    {
+      title: "Ver pipeline HunterX",
+      description: "Lista leads do CRM/pipeline da conta conectada, com opção de filtrar por estágio.",
+      inputSchema: z.object({
+        status: z.enum(stages).optional(),
+        limit: z.number().int().min(1).max(500).default(100),
+      }),
+    },
+    async ({ status, limit }, ctx) => {
+      const { supabase } = context(ctx);
+      return response(await listPipeline(supabase, status as LeadStage | undefined, limit));
+    },
+  );
+
+  server.registerTool(
+    "update_lead_stage",
+    {
+      title: "Atualizar estágio de lead",
+      description: "Move um lead existente do pipeline HunterX para outro estágio comercial.",
+      inputSchema: z.object({
+        leadKey: z.string().min(1).max(300),
+        status: z.enum(stages),
+      }),
+    },
+    async ({ leadKey, status }, ctx) => {
+      const { supabase } = context(ctx);
+      return response(await updatePipelineStage(supabase, leadKey, status as LeadStage));
+    },
+  );
+
+  server.registerTool(
+    "get_segment_insights",
+    {
+      title: "Analisar segmentos HunterX",
+      description: "Compara os segmentos já pesquisados usando o histórico da conta: leads únicos, percentual sem site, telefone, leads quentes, rating e score médios.",
+      inputSchema: z.object({
+        limit: z.number().int().min(1).max(500).default(200),
+      }),
+    },
+    async ({ limit }, ctx) => {
+      const { supabase } = context(ctx);
+      return response(await getSegmentInsights(supabase, limit));
+    },
+  );
+}, {
+  serverInfo: {
+    name: "HunterX",
+    version: "1.0.0",
+  },
 });
 
-export { handler as GET, handler as POST };
+const verifyToken = async (
+  _request: Request,
+  bearerToken?: string,
+): Promise<AuthInfo | undefined> => {
+  if (!bearerToken) return undefined;
+  const verified = await verifyMcpUser(bearerToken);
+  if (!verified) return undefined;
+
+  return {
+    token: bearerToken,
+    scopes: ["hunterx"],
+    clientId: verified.user.id,
+    extra: {
+      userId: verified.user.id,
+      email: verified.user.email || "",
+    },
+  };
+};
+
+const authenticated = withMcpAuth(handler, verifyToken, {
+  required: true,
+  resourceMetadataPath: "/.well-known/oauth-protected-resource",
+});
+
+export { authenticated as GET, authenticated as POST, authenticated as DELETE };
