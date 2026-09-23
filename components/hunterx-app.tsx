@@ -4,7 +4,7 @@ import { createElement, useEffect, useMemo, useState } from "react";
 import {
   Activity, ArrowRight, Building2, Download, Filter, Flame, Globe2,
   Mail, Menu, MessageSquareText, Phone, Search, ShieldCheck, Sparkles,
-  Target, UsersRound, WandSparkles
+  Target, UsersRound, WandSparkles, RefreshCw
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { HistoryItem, Lead } from "@/lib/hunter/types";
@@ -15,7 +15,13 @@ import { LeadDetailDrawer } from "@/components/lead-detail-drawer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { loadLatestSearchSnapshot, saveSearchSnapshot } from "@/lib/hunter/persistence";
+import {
+  loadLatestSearchSnapshot,
+  loadSearchHistorySnapshots,
+  loadSearchSnapshotByQuery,
+  makeQueryKey,
+  saveSearchSnapshot,
+} from "@/lib/hunter/persistence";
 
 type RuntimeStatus = {
   ok: boolean;
@@ -71,8 +77,8 @@ function Dashboard({
   onSearch: () => void;
 }) {
   const hot = leads.filter((lead) => lead.score >= 80).length;
-  const noSite = leads.filter((lead) => !lead.website).length || 42;
-  const noEmail = leads.filter((lead) => !lead.email).length || 31;
+  const noSite = leads.filter((lead) => !lead.website).length;
+  const noEmail = leads.filter((lead) => !lead.email).length;
 
   return (
     <div className="space-y-6">
@@ -89,8 +95,8 @@ function Dashboard({
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Buscas realizadas" value={searches} helper="plano atual" icon={Search} />
-        <MetricCard label="Leads na sessão" value={leads.length || 128} helper="base ativa" icon={UsersRound} accent="emerald" />
-        <MetricCard label="Oportunidades quentes" value={hot || 76} helper="score ≥ 80" icon={Flame} accent="rose" />
+        <MetricCard label="Leads carregados" value={leads.length} helper="resultado atual" icon={UsersRound} accent="emerald" />
+        <MetricCard label="Oportunidades quentes" value={hot} helper="score ≥ 80" icon={Flame} accent="rose" />
         <MetricCard label="Média por busca" value="20" helper="empresas" icon={Target} accent="amber" />
       </div>
 
@@ -107,7 +113,7 @@ function Dashboard({
             {[
               [Globe2, "Empresas sem website", "Ótima porta de entrada para mockup demonstrativo.", noSite, "bg-rose-50 text-rose-600"],
               [Mail, "Contato digital incompleto", "Sem e-mail ou sinais claros de aquisição.", noEmail, "bg-amber-50 text-amber-600"],
-              [Phone, "Score alto + telefone", "Dor identificada com canal direto disponível.", hot || 27, "bg-emerald-50 text-emerald-600"],
+              [Phone, "Score alto + telefone", "Dor identificada com canal direto disponível.", leads.filter((lead) => lead.score >= 80 && lead.phone).length, "bg-emerald-50 text-emerald-600"],
             ].map(([Icon, title, text, value, color]) => (
               <div key={String(title)} className="grid grid-cols-[40px_1fr_auto] items-center gap-3 py-4">
                 <span className={"grid size-10 place-items-center rounded-xl " + color}>
@@ -176,57 +182,81 @@ export function HunterXApp() {
   const [error, setError] = useState("");
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [searchCache, setSearchCache] = useState<Record<string, Lead[]>>({});
+  const [hydrated, setHydrated] = useState(false);
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    setFavorites(parse(localStorage.getItem("hunterx-favorites"), {}));
-    setHistory(parse(localStorage.getItem("hunterx-history"), []));
-    setSearches(Number(localStorage.getItem("hunterx-search-count") || 7));
-
+    const localFavorites = parse<Record<string, Lead>>(localStorage.getItem("hunterx-favorites"), {});
+    const localHistory = parse<HistoryItem[]>(localStorage.getItem("hunterx-history"), []);
     const localLeads = parse<Lead[]>(localStorage.getItem("hunterx-current-leads"), []);
     const localKeyword = localStorage.getItem("hunterx-current-keyword") || "Clínica odontológica";
     const localCity = localStorage.getItem("hunterx-current-city") || "Campina Grande, PB";
     const localCache = parse<Record<string, Lead[]>>(localStorage.getItem("hunterx-search-cache"), {});
 
+    setFavorites(localFavorites);
+    setHistory(localHistory);
+    setSearches(Number(localStorage.getItem("hunterx-search-count") || localHistory.length || 0));
     setLeads(localLeads);
     setKeyword(localKeyword);
     setCity(localCity);
     setSearchCache(localCache);
+    setHydrated(true);
 
-    if (!localLeads.length) {
-      void loadLatestSearchSnapshot().then((snapshot) => {
-        if (!snapshot?.leads?.length) return;
-        const cacheKey = `${snapshot.keyword.trim().toLowerCase()}::${snapshot.city.trim().toLowerCase()}`;
-        setLeads(snapshot.leads);
-        setKeyword(snapshot.keyword);
-        setCity(snapshot.city);
-        setSearchCache((current) => ({ ...current, [cacheKey]: snapshot.leads }));
-      });
-    }
+    void Promise.all([
+      loadSearchHistorySnapshots(),
+      localLeads.length ? Promise.resolve(null) : loadLatestSearchSnapshot(),
+    ]).then(([remoteHistory, latest]) => {
+      if (remoteHistory.length) {
+        setHistory((current) => {
+          const merged = [...remoteHistory, ...current];
+          const seen = new Set<string>();
+          return merged.filter((item) => {
+            const key = makeQueryKey(item.keyword, item.city);
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          }).slice(0, 50);
+        });
+      }
+
+      if (latest?.leads?.length) {
+        const cacheKey = makeQueryKey(latest.keyword, latest.city);
+        setLeads(latest.leads);
+        setKeyword(latest.keyword);
+        setCity(latest.city);
+        setSearchCache((current) => ({ ...current, [cacheKey]: latest.leads }));
+      }
+    });
 
     fetch("/api/health", { cache: "no-store" }).then((r) => r.json()).then(setRuntime).catch(() => null);
   }, []);
 
   useEffect(() => {
+    if (!hydrated) return;
     localStorage.setItem("hunterx-favorites", JSON.stringify(favorites));
-  }, [favorites]);
+  }, [favorites, hydrated]);
 
   useEffect(() => {
+    if (!hydrated) return;
     localStorage.setItem("hunterx-history", JSON.stringify(history));
     localStorage.setItem("hunterx-search-count", String(searches));
-  }, [history, searches]);
+  }, [history, searches, hydrated]);
 
   useEffect(() => {
+    if (!hydrated) return;
     localStorage.setItem("hunterx-current-leads", JSON.stringify(leads));
-  }, [leads]);
+  }, [leads, hydrated]);
 
   useEffect(() => {
+    if (!hydrated) return;
     localStorage.setItem("hunterx-current-keyword", keyword);
     localStorage.setItem("hunterx-current-city", city);
-  }, [keyword, city]);
+  }, [keyword, city, hydrated]);
 
   useEffect(() => {
+    if (!hydrated) return;
     localStorage.setItem("hunterx-search-cache", JSON.stringify(searchCache));
-  }, [searchCache]);
+  }, [searchCache, hydrated]);
 
   const visibleLeads = useMemo(() => {
     const q = query.toLowerCase().trim();
@@ -236,11 +266,38 @@ export function HunterXApp() {
       .sort((a,b) => b.score - a.score);
   }, [leads, query, temperature]);
 
-  async function runSearch() {
+  async function runSearch(forceRefresh = false) {
     if (!keyword.trim() || !city.trim()) return;
     setLoading(true);
     setError("");
+    setNotice("");
+
+    const cacheKey = makeQueryKey(keyword, city);
+
     try {
+      if (!forceRefresh) {
+        const local = searchCache[cacheKey];
+        if (local?.length) {
+          setLeads(local);
+          setNotice("Resultado salvo aberto sem consumir uma nova busca da Apify.");
+          setView("search");
+          return;
+        }
+
+        const remote = await loadSearchSnapshotByQuery(keyword, city);
+        if (remote?.leads?.length) {
+          setLeads(remote.leads);
+          setSearchCache((current) => ({ ...current, [cacheKey]: remote.leads }));
+          setHistory((current) => [
+            { keyword: remote.keyword, city: remote.city, count: remote.leads.length, mode: remote.mode, at: remote.createdAt },
+            ...current.filter((item) => makeQueryKey(item.keyword, item.city) !== cacheKey),
+          ].slice(0, 50));
+          setNotice("Resultado recuperado do Supabase sem consumir uma nova busca da Apify.");
+          setView("search");
+          return;
+        }
+      }
+
       const response = await fetch("/api/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -248,26 +305,32 @@ export function HunterXApp() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Falha na busca");
+
       const freshLeads = (data.leads || []) as Lead[];
       setLeads(freshLeads);
-      const cacheKey = `${keyword.trim().toLowerCase()}::${city.trim().toLowerCase()}`;
       setSearchCache((current) => {
         const entries = Object.entries({ ...current, [cacheKey]: freshLeads });
-        return Object.fromEntries(entries.slice(-30));
+        return Object.fromEntries(entries.slice(-50));
       });
       setSearches((value) => value + 1);
-      setHistory((current) => [
-        { keyword, city, count: data.leads?.length || 0, mode: data.mode, at: new Date().toISOString() },
-        ...current.filter((item) => item.keyword !== keyword || item.city !== city),
-      ].slice(0,30));
 
-      void saveSearchSnapshot({
+      const now = new Date().toISOString();
+      setHistory((current) => [
+        { keyword, city, count: freshLeads.length, mode: data.mode, at: now },
+        ...current.filter((item) => makeQueryKey(item.keyword, item.city) !== cacheKey),
+      ].slice(0, 50));
+
+      const saved = await saveSearchSnapshot({
         keyword,
         city,
         mode: data.mode || "live",
         leads: freshLeads,
       });
 
+      setNotice(saved
+        ? "Nova busca realizada e salva no Supabase."
+        : "Nova busca realizada. Cópia local salva; Supabase indisponível nesta sessão."
+      );
       setView("search");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Falha na busca");
@@ -285,12 +348,34 @@ export function HunterXApp() {
     });
   }
 
-  function reopenHistory(item: HistoryItem) {
+  async function reopenHistory(item: HistoryItem) {
     setKeyword(item.keyword);
     setCity(item.city);
-    const cacheKey = `${item.keyword.trim().toLowerCase()}::${item.city.trim().toLowerCase()}`;
+    setError("");
+    setNotice("");
+    const cacheKey = makeQueryKey(item.keyword, item.city);
+
     const cached = searchCache[cacheKey];
-    if (cached?.length) setLeads(cached);
+    if (cached?.length) {
+      setLeads(cached);
+      setNotice("Busca histórica aberta do cache local. Zero crédito Apify consumido.");
+      setView("search");
+      return;
+    }
+
+    setLoading(true);
+    const remote = await loadSearchSnapshotByQuery(item.keyword, item.city);
+    setLoading(false);
+
+    if (remote?.leads?.length) {
+      setLeads(remote.leads);
+      setSearchCache((current) => ({ ...current, [cacheKey]: remote.leads }));
+      setNotice("Busca histórica recuperada do Supabase. Zero crédito Apify consumido.");
+      setView("search");
+      return;
+    }
+
+    setError("Os dados desta busca antiga não foram encontrados. Use Atualizar dados somente se quiser consumir uma nova busca da Apify.");
     setView("search");
   }
 
@@ -351,10 +436,11 @@ export function HunterXApp() {
                       <input value={city} onChange={(e) => setCity(e.target.value)} className="w-full bg-transparent text-sm outline-none" />
                     </div>
                   </label>
-                  <Button className="mt-auto" onClick={runSearch} disabled={loading}>
-                    {loading ? <><WandSparkles className="size-4 animate-pulse" /> Caçando…</> : <><Search className="size-4" /> Buscar leads <ArrowRight className="size-4" /></>}
+                  <Button className="mt-auto" onClick={() => void runSearch(false)} disabled={loading}>
+                    {loading ? <><WandSparkles className="size-4 animate-pulse" /> Carregando…</> : <><Search className="size-4" /> Buscar / abrir salvo <ArrowRight className="size-4" /></>}
                   </Button>
                 </div>
+                {notice && <div className="mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">{notice}</div>}
                 {error && <div className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">{error}</div>}
               </Card>
 
@@ -388,7 +474,12 @@ export function HunterXApp() {
                         </select>
                       </div>
                     </div>
-                    <Button variant="secondary" size="sm" onClick={() => exportCsv(leads)}><Download className="size-3.5" /> Exportar CSV</Button>
+                    <div className="flex gap-2">
+                      <Button variant="secondary" size="sm" onClick={() => void runSearch(true)} disabled={loading}>
+                        <RefreshCw className="size-3.5" /> Atualizar dados
+                      </Button>
+                      <Button variant="secondary" size="sm" onClick={() => exportCsv(leads)}><Download className="size-3.5" /> Exportar CSV</Button>
+                    </div>
                   </div>
 
                   <LeadTable leads={visibleLeads} favorites={favorites} onFavorite={toggleFavorite} onWhatsApp={whatsapp} onDetails={setSelectedLead} />
@@ -412,7 +503,7 @@ export function HunterXApp() {
               <div><p className="mb-2 text-[10px] font-bold uppercase tracking-[.16em] text-blue-600">Memória comercial</p><h1 className="text-3xl font-black tracking-[-.045em]">Histórico</h1></div>
               <Card className="divide-y divide-slate-100 p-2">
                 {history.length ? history.map((item,index) => (
-                  <button key={item.keyword + index} onClick={() => reopenHistory(item)} className="flex w-full items-center gap-3 rounded-xl p-3 text-left hover:bg-slate-50">
+                  <button key={makeQueryKey(item.keyword, item.city) + index} onClick={() => void reopenHistory(item)} className="flex w-full items-center gap-3 rounded-xl p-3 text-left hover:bg-slate-50">
                     <span className="grid size-10 place-items-center rounded-xl bg-blue-50 text-blue-600"><Search className="size-4" /></span>
                     <span className="min-w-0 flex-1"><strong className="block truncate text-xs">{item.keyword}</strong><small className="mt-1 block text-[10px] text-slate-400">{item.city} • {new Date(item.at).toLocaleString("pt-BR")}</small></span>
                     <Badge className="bg-slate-100 text-slate-600">{item.count} leads</Badge>
