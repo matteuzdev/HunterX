@@ -112,46 +112,6 @@ function seedFrom(text: string) {
   return hash >>> 0;
 }
 
-function rng(seed: number) {
-  let value = seed || 1;
-  return () => ((value = (Math.imul(1664525, value) + 1013904223) >>> 0) / 4294967296);
-}
-
-function mockLeads(keyword: string, city: string): Lead[] {
-  const random = rng(seedFrom(`${keyword}:${city}`));
-  const suffixes = [
-    "Prime", "Central", "Imperial", "Ideal", "Nordeste", "Real", "Master", "Nova Era", "São Lucas", "Vértice",
-    "Elite", "Mais", "Ponto Certo", "Aliança", "Boa Vista", "Fortaleza", "Premium", "União", "Brasil", "Conecta",
-  ];
-  const streets = ["Av. Principal", "Rua das Flores", "Av. Brasil", "Rua do Comércio", "Av. Central", "Rua São José"];
-
-  return suffixes.map((suffix, index) => {
-    const hasWebsite = random() > 0.62;
-    const hasEmail = hasWebsite && random() > 0.52;
-    const hasSocial = random() > 0.48;
-    const rating = Number((3.7 + random() * 1.25).toFixed(1));
-    const reviews = Math.floor(3 + random() * 190);
-    const area = 20 + Math.floor(random() * 79);
-    const phone = `55${area}9${String(10000000 + Math.floor(random() * 89999999))}`;
-    const slug = `${keyword}-${suffix}`.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").toLowerCase();
-    const base = {
-      id: `mock-${seedFrom(slug + city + index)}`,
-      name: `${keyword.split(/\s+/).map(word => word ? word[0].toLocaleUpperCase("pt-BR") + word.slice(1) : word).join(" ")} ${suffix}`,
-      category: keyword,
-      city,
-      address: `${streets[index % streets.length]}, ${80 + index * 37} — ${city}`,
-      phone,
-      website: hasWebsite ? `https://www.${slug}.com.br` : "",
-      email: hasEmail ? `contato@${slug}.com.br` : "",
-      rating,
-      reviews,
-      businessStatus: "OPERATIONAL",
-      socials: (hasSocial ? { instagram: `https://instagram.com/${slug.replaceAll("-", "")}` } : {}) as Record<string, string>,
-      source: "mock" as const,
-    };
-    return { ...base, ...scoreLead(base) };
-  });
-}
 
 
 function mapApify(item: Record<string, unknown>, keyword: string, city: string, index: number): Lead {
@@ -304,15 +264,25 @@ export async function searchLeads(rawKeyword: unknown, rawCity: unknown): Promis
   const city = clampText(rawCity, 120);
   if (!keyword || !city) throw new Error("Informe palavra-chave e cidade.");
 
-  const leads =
-    provider === "apify" ? await searchApify(keyword, city) :
-    provider === "outscraper" || provider === "live" ? await searchOutscraper(keyword, city) :
-    mockLeads(keyword, city);
+  const apifyKey = getApifyToken();
+  const outscraperKey = process.env.OUTSCRAPER_API_KEY;
+
+  let leads: Lead[] = [];
+
+  if (apifyKey || provider === "apify") {
+    leads = await searchApify(keyword, city);
+  } else if (outscraperKey || provider === "outscraper" || provider === "live") {
+    leads = await searchOutscraper(keyword, city);
+  } else {
+    throw new Error(
+      "Nenhuma API de prospecção configurada no ambiente. Adicione sua chave APIFY_API_KEY ou OUTSCRAPER_API_KEY no arquivo .env para buscar dados reais do Google Maps."
+    );
+  }
 
   return {
     query: { keyword, city },
     count: leads.length,
-    mode: provider === "mock" ? "mock" : "live",
+    mode: "live",
     leads,
   };
 }

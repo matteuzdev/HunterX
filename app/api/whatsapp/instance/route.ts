@@ -11,13 +11,6 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}));
     const action = body.action || "connect";
 
-    if (action === "simulate_scan" || action === "simulate-scan") {
-      const result = await WhatsAppService.simulateScanSuccess(
-        body.phoneNumber || "5583996541234",
-        body.profileName || "HunterX Oficial"
-      );
-      return NextResponse.json(result);
-    }
 
     if (action === "connect") {
       const instance = await WhatsAppService.connectInstance();

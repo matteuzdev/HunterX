@@ -22,7 +22,6 @@ export function QRConnectModal({
   const [activeTab, setActiveTab] = useState<"connect" | "settings">("connect");
   const [instance, setInstance] = useState<WhatsAppInstance | null>(null);
   const [loading, setLoading] = useState(false);
-  const [scanning, setScanning] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
 
   // Estados de configuração da Evolution API
@@ -164,23 +163,6 @@ export function QRConnectModal({
     }
   }
 
-  async function handleSimulateScan() {
-    try {
-      setScanning(true);
-      const res = await fetch("/api/whatsapp/instance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "simulate_scan" }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setInstance(data);
-        onConnected?.(data);
-      }
-    } finally {
-      setScanning(false);
-    }
-  }
 
   async function handleDisconnect() {
     try {
@@ -352,24 +334,23 @@ export function QRConnectModal({
                       <QrCode className="mr-2 size-4" /> Gerar QR Code de Conexão
                     </Button>
                   ) : (
-                    <div className="flex w-full gap-2">
-                      <Button
-                        variant="secondary"
-                        onClick={generateQRCode}
-                        disabled={loading}
-                        className="flex-1 text-xs"
-                      >
-                        <RefreshCw className={`mr-2 size-3.5 ${loading ? "animate-spin" : ""}`} /> Atualizar QR Code
-                      </Button>
-                      <Button
-                        onClick={handleSimulateScan}
-                        disabled={scanning}
-                        variant="secondary"
-                        className="flex-1 text-xs border border-slate-200"
-                        title="Simula leitura caso sua Evolution API esteja offline no momento"
-                      >
-                        <Sparkles className="mr-2 size-3.5 text-blue-600" /> Modo Demonstração
-                      </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={generateQRCode}
+                      disabled={loading}
+                      className="w-full text-xs"
+                    >
+                      <RefreshCw className={`mr-2 size-3.5 ${loading ? "animate-spin" : ""}`} /> Atualizar QR Code
+                    </Button>
+                  )}
+
+                  {instance?.error && (
+                    <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+                      <AlertCircle className="mt-0.5 size-4 shrink-0 text-rose-600" />
+                      <div>
+                        <strong className="block font-bold">Falha de Comunicação</strong>
+                        <p className="mt-0.5 text-[11px] leading-relaxed">{instance.error}</p>
+                      </div>
                     </div>
                   )}
 

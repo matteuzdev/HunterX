@@ -143,6 +143,12 @@ const COMMUNITY_TEMPLATES: AIAgent[] = [
   },
 ];
 
+import {
+  fetchAgentsFromSupabase,
+  saveAgentToSupabase,
+  deleteAgentFromSupabase,
+} from "@/lib/hunter/supabase-store";
+
 export function AgentsCatalogView({
   onSelectAgentForTest,
 }: {
@@ -153,29 +159,21 @@ export function AgentsCatalogView({
   const [editingAgent, setEditingAgent] = useState<AIAgent | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Carrega agentes do storage
+  // Carrega agentes reais do Supabase
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(AGENTS_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setAgents(parsed);
+    async function loadAgents() {
+      const data = await fetchAgentsFromSupabase();
+      if (data && data.length > 0) {
+        setAgents(data);
+      } else {
+        // Se ainda não houver nenhum agente no banco, persiste os agentes base
+        for (const defaultAgent of DEFAULT_AGENTS) {
+          void saveAgentToSupabase(defaultAgent);
         }
       }
-    } catch (e) {
-      console.error("Erro ao carregar agentes:", e);
     }
+    void loadAgents();
   }, []);
-
-  function persistAgents(updated: AIAgent[]) {
-    setAgents(updated);
-    try {
-      localStorage.setItem(AGENTS_STORAGE_KEY, JSON.stringify(updated));
-    } catch (e) {
-      console.error("Erro ao persistir agentes:", e);
-    }
-  }
 
   function handleCreateNewAgent() {
     setEditingAgent(null);
@@ -187,7 +185,7 @@ export function AgentsCatalogView({
     setIsModalOpen(true);
   }
 
-  function handleSaveAgent(saved: AIAgent) {
+  async function handleSaveAgent(saved: AIAgent) {
     const exists = agents.some((a) => a.id === saved.id);
     let next: AIAgent[];
     if (exists) {
@@ -195,28 +193,32 @@ export function AgentsCatalogView({
     } else {
       next = [saved, ...agents];
     }
-    persistAgents(next);
+    setAgents(next);
+    await saveAgentToSupabase(saved);
   }
 
-  function handleDeleteAgent(agentId: string) {
+  async function handleDeleteAgent(agentId: string) {
     if (agents.length <= 1) {
       alert("É necessário manter pelo menos um agente configurado no sistema.");
       return;
     }
     if (confirm("Deseja realmente remover este agente?")) {
       const next = agents.filter((a) => a.id !== agentId);
-      persistAgents(next);
+      setAgents(next);
+      await deleteAgentFromSupabase(agentId);
     }
   }
 
-  function handleToggleActive(agentId: string) {
-    const next = agents.map((a) =>
-      a.id === agentId ? { ...a, isActive: !a.isActive, updatedAt: new Date().toISOString() } : a
-    );
-    persistAgents(next);
+  async function handleToggleActive(agentId: string) {
+    const target = agents.find((a) => a.id === agentId);
+    if (!target) return;
+    const updated = { ...target, isActive: !target.isActive, updatedAt: new Date().toISOString() };
+    const next = agents.map((a) => (a.id === agentId ? updated : a));
+    setAgents(next);
+    await saveAgentToSupabase(updated);
   }
 
-  function handleCloneTemplate(template: AIAgent) {
+  async function handleCloneTemplate(template: AIAgent) {
     const cloned: AIAgent = {
       ...template,
       id: `agent-${Date.now()}`,
@@ -224,11 +226,12 @@ export function AgentsCatalogView({
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    persistAgents([cloned, ...agents]);
+    setAgents([cloned, ...agents]);
+    await saveAgentToSupabase(cloned);
     setActiveCatalogTab("my_agents");
   }
 
-  function handleDuplicateAgent(agent: AIAgent) {
+  async function handleDuplicateAgent(agent: AIAgent) {
     const duplicated: AIAgent = {
       ...agent,
       id: `agent-${Date.now()}`,
@@ -236,7 +239,8 @@ export function AgentsCatalogView({
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    persistAgents([duplicated, ...agents]);
+    setAgents([duplicated, ...agents]);
+    await saveAgentToSupabase(duplicated);
   }
 
   const activeAgentsCount = agents.filter((a) => a.isActive).length;

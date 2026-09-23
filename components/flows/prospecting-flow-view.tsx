@@ -12,32 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-export type FlowNodeType =
-  | "trigger"
-  | "delay"
-  | "message"
-  | "audio_ptt"
-  | "menu"
-  | "kanban_move"
-  | "ai_agent";
-
-export type FlowNode = {
-  id: string;
-  name: string;
-  type: FlowNodeType;
-  config: Record<string, any>;
-};
-
-export type AutomationFlow = {
-  id: string;
-  name: string;
-  description: string;
-  targetNiche: string;
-  isActive: boolean;
-  nodes: FlowNode[];
-  createdAt: string;
-  updatedAt: string;
-};
+import type { FlowNodeType, FlowNode, AutomationFlow } from "@/lib/hunter/types";
 
 const DEFAULT_FLOWS: AutomationFlow[] = [
   {
@@ -216,6 +191,12 @@ const NODE_DEFINITIONS: Record<
   },
 };
 
+import {
+  fetchFlowsFromSupabase,
+  saveFlowToSupabase,
+  deleteFlowFromSupabase,
+} from "@/lib/hunter/supabase-store";
+
 export function ProspectingFlowView() {
   const [flows, setFlows] = useState<AutomationFlow[]>(DEFAULT_FLOWS);
   const [selectedFlowId, setSelectedFlowId] = useState<string>(DEFAULT_FLOWS[0].id);
@@ -224,33 +205,33 @@ export function ProspectingFlowView() {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Carrega fluxos do localStorage
+  // Carrega fluxos reais do Supabase
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(FLOWS_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setFlows(parsed);
-          setSelectedFlowId(parsed[0].id);
+    async function loadFlows() {
+      const data = await fetchFlowsFromSupabase();
+      if (data && data.length > 0) {
+        setFlows(data);
+        setSelectedFlowId(data[0].id);
+      } else {
+        for (const defaultFlow of DEFAULT_FLOWS) {
+          void saveFlowToSupabase(defaultFlow);
         }
       }
-    } catch (e) {
-      console.error("Erro ao carregar fluxos de automação:", e);
     }
+    void loadFlows();
   }, []);
 
   const activeFlow = flows.find((f) => f.id === selectedFlowId) || flows[0];
   const selectedNode = activeFlow.nodes.find((n) => n.id === selectedNodeId) || null;
 
-  function persistFlows(updatedFlows: AutomationFlow[]) {
+  async function persistFlows(updatedFlows: AutomationFlow[]) {
     setFlows(updatedFlows);
-    try {
-      localStorage.setItem(FLOWS_STORAGE_KEY, JSON.stringify(updatedFlows));
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 2000);
-    } catch (e) {
-      console.error("Erro ao salvar fluxos:", e);
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2000);
+
+    const activeToSave = updatedFlows.find((f) => f.id === selectedFlowId);
+    if (activeToSave) {
+      await saveFlowToSupabase(activeToSave);
     }
   }
 
@@ -306,6 +287,7 @@ export function ProspectingFlowView() {
       persistFlows(next);
       setSelectedFlowId(next[0].id);
       setSelectedNodeId(null);
+      void deleteFlowFromSupabase(flowId);
     }
   }
 

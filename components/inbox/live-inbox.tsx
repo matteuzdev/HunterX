@@ -13,54 +13,12 @@ import { Conversation, ChatMessage, Lead, WhatsAppInstance, LeadStage, ChatLabel
 import { DEFAULT_LABELS, KANBAN_STAGES, DEFAULT_QUICK_REPLIES } from "@/lib/hunter/omnichannel-config";
 import { QRConnectModal } from "./qr-connect-modal";
 
-const INITIAL_CONVERSATIONS: Conversation[] = [
-  {
-    id: "conv-1",
-    leadName: "Clínica Sorriso & Arte",
-    phoneNumber: "5583998765432",
-    channel: "whatsapp",
-    unreadCount: 1,
-    aiHandled: true,
-    leadStage: "respondeu",
-    city: "Campina Grande, PB",
-    niche: "Clínica Odontológica",
-    score: 88,
-    tags: ["Odonto", "Campina Grande", "Sem Site"],
-    labels: [DEFAULT_LABELS[0], DEFAULT_LABELS[1]],
-    updatedAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    lastMessage: {
-      id: "msg-101",
-      conversationId: "conv-1",
-      sender: "lead",
-      content: "Olá! Como funciona essa demonstração visual para nossa clínica?",
-      timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-      status: "read",
-    },
-  },
-  {
-    id: "conv-2",
-    leadName: "Barbearia Dom Pedro",
-    phoneNumber: "5583991234567",
-    channel: "whatsapp",
-    unreadCount: 0,
-    aiHandled: false,
-    leadStage: "negociacao",
-    city: "João Pessoa, PB",
-    niche: "Barbearia",
-    score: 75,
-    tags: ["Barbearia", "João Pessoa", "Quente"],
-    labels: [DEFAULT_LABELS[1], DEFAULT_LABELS[3]],
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-    lastMessage: {
-      id: "msg-102",
-      conversationId: "conv-2",
-      sender: "human",
-      content: "Combinado Pedro! Te mandei o link com os detalhes da proposta.",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-      status: "delivered",
-    },
-  },
-];
+import {
+  fetchConversationsFromSupabase,
+  saveConversationToSupabase,
+  fetchMessagesFromSupabase,
+  saveMessageToSupabase,
+} from "@/lib/hunter/supabase-store";
 
 export function LiveInbox({
   leads = [],
@@ -69,50 +27,9 @@ export function LiveInbox({
   leads?: Lead[];
   onOpenLead?: (lead: Lead) => void;
 }) {
-  const [conversations, setConversations] = useState<Conversation[]>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("hunterx-conversations");
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch {}
-      }
-    }
-    return INITIAL_CONVERSATIONS;
-  });
-
-  const [selectedId, setSelectedId] = useState<string>("conv-1");
-  const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({
-    "conv-1": [
-      {
-        id: "m1",
-        conversationId: "conv-1",
-        sender: "agent",
-        content: "Olá equipe da Clínica Sorriso & Arte! Aqui é o consultor comercial da agência. Notei a excelente reputação de vocês no Google em Campina Grande!",
-        timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-        status: "read",
-        agentName: "Consultor HunterX",
-      },
-      {
-        id: "m2",
-        conversationId: "conv-1",
-        sender: "lead",
-        content: "Olá! Como funciona essa demonstração visual para nossa clínica?",
-        timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-        status: "read",
-      },
-    ],
-    "conv-2": [
-      {
-        id: "m3",
-        conversationId: "conv-2",
-        sender: "human",
-        content: "Combinado Pedro! Te mandei o link com os detalhes da proposta.",
-        timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-        status: "delivered",
-      },
-    ],
-  });
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedId, setSelectedId] = useState<string>("");
+  const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({});
 
   const [inputText, setInputText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -162,29 +79,34 @@ export function LiveInbox({
   const [newChatPhone, setNewChatPhone] = useState("");
   const [newChatInitialMessage, setNewChatInitialMessage] = useState("");
 
-  // Persistência
+  // Carregamento de conversas reais do Supabase
   useEffect(() => {
-    try {
-      localStorage.setItem("hunterx-conversations", JSON.stringify(conversations));
-    } catch {}
-  }, [conversations]);
+    async function loadConversations() {
+      const data = await fetchConversationsFromSupabase();
+      if (data && data.length > 0) {
+        setConversations(data);
+        setSelectedId(data[0].id);
+      }
+    }
+    void loadConversations();
+  }, []);
 
+  // Carregamento de mensagens reais da conversa selecionada
   useEffect(() => {
-    try {
-      localStorage.setItem("hunterx-labels", JSON.stringify(labels));
-    } catch {}
-  }, [labels]);
+    if (!selectedId) return;
+    async function loadMessages() {
+      const msgs = await fetchMessagesFromSupabase(selectedId);
+      if (msgs) {
+        setMessages((prev) => ({ ...prev, [selectedId]: msgs }));
+      }
+    }
+    void loadMessages();
+  }, [selectedId]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem("hunterx-quick-replies", JSON.stringify(quickReplies));
-    } catch {}
-  }, [quickReplies]);
-
-  const activeConversation = conversations.find((c) => c.id === selectedId) || conversations[0];
+  const activeConversation = conversations.find((c) => c.id === selectedId) || null;
   const activeMessages = activeConversation ? messages[activeConversation.id] || [] : [];
 
-  function handleSendMessage(customText?: string) {
+  async function handleSendMessage(customText?: string) {
     const textToSend = (customText || inputText).trim();
     if (!textToSend || !activeConversation) return;
 
@@ -202,23 +124,39 @@ export function LiveInbox({
       [activeConversation.id]: [...(prev[activeConversation.id] || []), newMsg],
     }));
 
+    const updatedConv = {
+      ...activeConversation,
+      lastMessage: newMsg,
+      updatedAt: newMsg.timestamp,
+      unreadCount: 0,
+    };
+
     setConversations((prev) =>
-      prev.map((c) =>
-        c.id === activeConversation.id
-          ? {
-              ...c,
-              lastMessage: newMsg,
-              updatedAt: newMsg.timestamp,
-              unreadCount: 0,
-            }
-          : c
-      )
+      prev.map((c) => (c.id === activeConversation.id ? updatedConv : c))
     );
 
     setInputText("");
     setQuickRepliesOpen(false);
 
-    // Se estiver com IA ativa, dispara inferência em background
+    // 1. Grava no banco de dados real (Supabase)
+    void saveMessageToSupabase(newMsg);
+    void saveConversationToSupabase(updatedConv);
+
+    // 2. Dispara a mensagem no WhatsApp real via Evolution API
+    try {
+      await fetch("/api/whatsapp/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phoneNumber: activeConversation.phoneNumber,
+          text: textToSend,
+        }),
+      });
+    } catch (err) {
+      console.error("Erro ao enviar mensagem pelo WhatsApp:", err);
+    }
+
+    // 3. Se estiver com IA ativa, dispara inferência em background
     if (activeConversation.aiHandled) {
       setTimeout(() => {
         void triggerAIReply(activeConversation, textToSend);
@@ -384,7 +322,10 @@ export function LiveInbox({
         [newConv.id]: [firstMsg],
       }));
       newConv.lastMessage = firstMsg;
+      void saveMessageToSupabase(firstMsg);
     }
+
+    void saveConversationToSupabase(newConv);
 
     setNewChatName("");
     setNewChatPhone("");

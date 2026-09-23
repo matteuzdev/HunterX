@@ -18,30 +18,7 @@ let currentInstance: WhatsAppInstance = {
   updatedAt: new Date().toISOString(),
 };
 
-// SVG simulado de fallback de alta fidelidade
-const DEMO_QR_CODE = "data:image/svg+xml;utf8," + encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
-  <rect width="200" height="200" fill="#ffffff" rx="12" />
-  <rect x="20" y="20" width="50" height="50" fill="#0f172a" rx="6" />
-  <rect x="30" y="30" width="30" height="30" fill="#ffffff" rx="4" />
-  <rect x="40" y="40" width="10" height="10" fill="#2563eb" rx="2" />
-  <rect x="130" y="20" width="50" height="50" fill="#0f172a" rx="6" />
-  <rect x="140" y="30" width="30" height="30" fill="#ffffff" rx="4" />
-  <rect x="150" y="40" width="10" height="10" fill="#2563eb" rx="2" />
-  <rect x="20" y="130" width="50" height="50" fill="#0f172a" rx="6" />
-  <rect x="30" y="140" width="30" height="30" fill="#ffffff" rx="4" />
-  <rect x="40" y="150" width="10" height="10" fill="#2563eb" rx="2" />
-  <rect x="80" y="20" width="20" height="20" fill="#0f172a" />
-  <rect x="80" y="50" width="12" height="30" fill="#0f172a" />
-  <rect x="100" y="70" width="30" height="20" fill="#0f172a" />
-  <rect x="70" y="100" width="40" height="15" fill="#2563eb" />
-  <rect x="130" y="100" width="20" height="40" fill="#0f172a" />
-  <rect x="90" y="130" width="30" height="30" fill="#0f172a" />
-  <rect x="140" y="150" width="40" height="30" fill="#2563eb" />
-  <circle cx="100" cy="100" r="14" fill="#10b981" />
-  <path d="M96 100l3 3 6-6" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-</svg>
-`);
+
 
 export class WhatsAppService {
   /**
@@ -223,39 +200,34 @@ export class WhatsAppService {
           return currentInstance;
         }
       } catch (err: any) {
-        console.warn("Evolution API falhou, acionando fallback simulado:", err?.message);
+        console.warn("Erro ao comunicar com Evolution API:", err?.message);
+        currentInstance = {
+          instanceName,
+          status: "disconnected",
+          phoneNumber: null,
+          qrcode: null,
+          pairingCode: null,
+          apiUrl,
+          isRealConnection: false,
+          error: `Falha ao conectar com Evolution API: ${err?.message || "Servidor inacessível"}.`,
+          updatedAt: new Date().toISOString(),
+        };
+        return currentInstance;
       }
     }
 
-    // Modo simulado interativo de fallback
-    currentInstance = {
-      instanceName,
-      status: "qrcode",
-      qrcode: DEMO_QR_CODE,
-      pairingCode: "HNTR-8492",
-      apiUrl: activeConfig.apiUrl,
-      isRealConnection: false,
-      updatedAt: new Date().toISOString(),
-    };
-
-    return currentInstance;
-  }
-
-  /**
-   * Simula a leitura do QR Code
-   */
-  static async simulateScanSuccess(phoneNumber = "5583996541234", profileName = "HunterX Oficial"): Promise<WhatsAppInstance> {
     currentInstance = {
       instanceName: activeConfig.instanceName,
-      status: "connected",
-      phoneNumber,
-      profileName,
+      status: "disconnected",
+      phoneNumber: null,
       qrcode: null,
       pairingCode: null,
       apiUrl: activeConfig.apiUrl,
       isRealConnection: false,
+      error: "Evolution API não configurada. Insira a URL e a API Key na aba de configurações.",
       updatedAt: new Date().toISOString(),
     };
+
     return currentInstance;
   }
 

@@ -204,3 +204,34 @@ export type AIAgent = {
   updatedAt: string;
 };
 
+// ==========================================
+// AUTOMATION FLOWS (MANYCHAT STYLE)
+// ==========================================
+
+export type FlowNodeType =
+  | "trigger"
+  | "delay"
+  | "message"
+  | "audio_ptt"
+  | "menu"
+  | "kanban_move"
+  | "ai_agent";
+
+export type FlowNode = {
+  id: string;
+  name: string;
+  type: FlowNodeType;
+  config: Record<string, any>;
+};
+
+export type AutomationFlow = {
+  id: string;
+  name: string;
+  description: string;
+  targetNiche: string;
+  isActive: boolean;
+  nodes: FlowNode[];
+  createdAt: string;
+  updatedAt: string;
+};
+
