@@ -20,9 +20,16 @@ import { ExportsView } from "@/components/exports-view";
 import { FocusView } from "@/components/focus-view";
 import { TokensView } from "@/components/tokens-view";
 import { AuthStatus } from "@/components/auth-status";
+import { LiveInbox } from "@/components/inbox/live-inbox";
+import { ProspectingFlowView } from "@/components/flows/prospecting-flow-view";
+import { AgentStudio } from "@/components/agents/agent-studio";
+import { AgentPlayground } from "@/components/agents/agent-playground";
+import type { AIAgent } from "@/lib/hunter/types";
+
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+
 import {
   loadLatestSearchSnapshot,
   loadSearchHistorySnapshots,
@@ -213,6 +220,8 @@ export function HunterXApp() {
   const [exportLogs, setExportLogs] = useState<ExportLog[]>([]);
   const [account, setAccount] = useState<HunterAccount | null>(null);
   const [tokenPackages, setTokenPackages] = useState<TokenPackage[]>([]);
+  const [selectedAgent, setSelectedAgent] = useState<AIAgent | undefined>(undefined);
+
 
   useEffect(() => {
     const localFavorites = parse<Record<string, Lead>>(localStorage.getItem("hunterx-favorites"), {});
@@ -510,6 +519,10 @@ export function HunterXApp() {
     exports: "Exportações",
     tokens: "Tokens",
     messages: "WhatsApp",
+    inbox: "Live Inbox Omnichannel",
+    flows: "Fluxos de Abordagem & Leona",
+    "agent-studio": "Agent Studio",
+    "agent-playground": "Playground de Agentes",
     settings: "Configurações",
   };
 
@@ -728,7 +741,35 @@ export function HunterXApp() {
             </section>
           )}
 
+          {view === "inbox" && (
+            <LiveInbox
+              leads={leads}
+              onOpenLead={(lead) => setSelectedLead(lead)}
+            />
+          )}
+
+          {view === "flows" && (
+            <ProspectingFlowView />
+          )}
+
+          {view === "agent-studio" && (
+
+            <AgentStudio
+              onTestAgent={(agent) => {
+                setSelectedAgent(agent);
+                setView("agent-playground");
+              }}
+            />
+          )}
+
+          {view === "agent-playground" && (
+            <AgentPlayground
+              initialAgent={selectedAgent}
+            />
+          )}
+
           {view === "settings" && (
+
             <section className="space-y-5">
               <div><p className="mb-2 text-[10px] font-bold uppercase tracking-[.16em] text-blue-600">Sistema</p><h1 className="text-3xl font-black tracking-[-.045em]">Configurações</h1></div>
               <div className="grid gap-4 xl:grid-cols-2">

@@ -2,24 +2,46 @@
 
 import {
   Clock3, Coins, Command, CreditCard, Crosshair, FileSpreadsheet, Gauge,
-  Heart, MessageSquareText, Search, Settings2, Sparkles, Workflow, BarChart3, Crown
+  Heart, MessageSquareText, Search, Settings2, Sparkles, Workflow, BarChart3, Crown,
+  Bot, Play, Inbox
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type ViewName = "dashboard" | "focus" | "search" | "history" | "history-detail" | "pipeline" | "segments" | "favorites" | "exports" | "tokens" | "messages" | "settings";
+export type ViewName =
+  | "dashboard"
+  | "focus"
+  | "search"
+  | "history"
+  | "history-detail"
+  | "pipeline"
+  | "segments"
+  | "favorites"
+  | "exports"
+  | "tokens"
+  | "messages"
+  | "inbox"
+  | "flows"
+  | "agent-studio"
+  | "agent-playground"
+  | "settings";
 
 const items = [
   { id: "dashboard" as const, label: "Visão geral", icon: Gauge },
-  { id: "focus" as const, label: "Focus", icon: Crosshair },
   { id: "search" as const, label: "Buscar leads", icon: Search },
-  { id: "history" as const, label: "Histórico", icon: Clock3 },
-  { id: "pipeline" as const, label: "Pipeline", icon: Workflow },
+  { id: "pipeline" as const, label: "Pipeline CRM", icon: Workflow },
+  { id: "inbox" as const, label: "Live Inbox", icon: Inbox },
+  { id: "flows" as const, label: "Fluxos / Leona", icon: Sparkles },
+  { id: "agent-studio" as const, label: "Agent Studio", icon: Bot },
+  { id: "agent-playground" as const, label: "Playground IA", icon: Play },
+  { id: "focus" as const, label: "Focus", icon: Crosshair },
   { id: "segments" as const, label: "Segmentos", icon: BarChart3 },
+  { id: "history" as const, label: "Histórico", icon: Clock3 },
   { id: "favorites" as const, label: "Favoritos", icon: Heart },
   { id: "exports" as const, label: "Exportações", icon: FileSpreadsheet },
   { id: "tokens" as const, label: "Tokens", icon: Coins },
-  { id: "messages" as const, label: "WhatsApp", icon: MessageSquareText },
 ];
+
+
 
 export function Sidebar({
   view,

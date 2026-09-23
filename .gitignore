@@ -6,3 +6,13 @@ node_modules/
 .vercel/
 .DS_Store
 *.log
+
+# Python / Agno
+venv/
+.venv/
+__pycache__/
+*.pyc
+backend-agents/.env
+*.db
+*.tsbuildinfo
+

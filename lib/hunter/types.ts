@@ -72,3 +72,101 @@ export type SegmentInsight = {
   avgScore: number;
   lastSeenAt: string;
 };
+
+// ==========================================
+// MENSAGERIA & WHATSAPP OMNICHANNEL
+// ==========================================
+
+export type WhatsAppConnectionStatus = "disconnected" | "connecting" | "qrcode" | "connected";
+
+export type WhatsAppInstance = {
+  instanceName: string;
+  status: WhatsAppConnectionStatus;
+  qrcode?: string | null;
+  phoneNumber?: string | null;
+  profileName?: string | null;
+  profilePicUrl?: string | null;
+  updatedAt: string;
+};
+
+export type MessageSenderType = "lead" | "agent" | "human";
+export type MessageDeliveryStatus = "pending" | "sent" | "delivered" | "read";
+
+export type ChatMessage = {
+  id: string;
+  conversationId: string;
+  sender: MessageSenderType;
+  content: string;
+  timestamp: string;
+  status: MessageDeliveryStatus;
+  mediaUrl?: string;
+  mediaType?: "image" | "audio" | "document";
+  agentName?: string;
+};
+
+export type ChatLabel = {
+  id: string;
+  name: string;
+  color: string; // hex ou tailwind class
+};
+
+export type QuickReply = {
+  id: string;
+  shortcut: string; // ex: "/site", "/diag", "/preco"
+  title: string;
+  content: string;
+  category: "abordagem" | "diagnostico" | "objecao" | "fechamento";
+};
+
+export type Conversation = {
+  id: string;
+  leadId?: string;
+  leadName: string;
+  phoneNumber: string;
+  channel: "whatsapp" | "instagram" | "telegram";
+  unreadCount: number;
+  lastMessage?: ChatMessage;
+  aiHandled: boolean;
+  assignedAgentId?: string;
+  leadStage?: LeadStage;
+  tags: string[];
+  labels?: ChatLabel[];
+  city?: string;
+  niche?: string;
+  score?: number;
+  updatedAt: string;
+};
+
+
+// ==========================================
+// AGENT STUDIO (GPT Maker / Converza / Zaya)
+// ==========================================
+
+export type AgentTone = "consultivo" | "persuasivo" | "formal" | "descontraido" | "direto";
+export type AgentProvider = "openai" | "anthropic" | "gemini" | "groq" | "ollama";
+
+export type AgentKnowledgeItem = {
+  id: string;
+  type: "faq" | "service" | "objection" | "link";
+  title: string;
+  content: string;
+};
+
+export type AIAgent = {
+  id: string;
+  name: string;
+  avatar: string;
+  role: string;
+  tone: AgentTone;
+  provider: AgentProvider;
+  model: string;
+  systemPrompt: string;
+  knowledgeBase: AgentKnowledgeItem[];
+  fallbackToHuman: boolean;
+  handoffKeywords: string[];
+  isActive: boolean;
+  assignedNiches: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
