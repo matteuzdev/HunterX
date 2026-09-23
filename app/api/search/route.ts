@@ -30,13 +30,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Informe palavra-chave e cidade." }, { status: 400 });
     }
 
-    const { data: accountData, error: accountError } = await supabase.rpc("ensure_hunter_account");
+    const { data: accountData, error: accountError } = await supabase.rpc("get_hunter_account");
     if (accountError || !Array.isArray(accountData) || !accountData[0]) {
-      return NextResponse.json({ error: "Não foi possível validar seu saldo de tokens." }, { status: 503 });
+      return NextResponse.json({ error: "Não foi possível validar seu plano." }, { status: 503 });
     }
 
     const balance = Number(accountData[0].balance || 0);
-    if (balance < limit) {
+    const unlimitedTokens = Boolean(accountData[0].unlimited_tokens);
+    if (!unlimitedTokens && balance < limit) {
       return NextResponse.json({
         error: `Saldo insuficiente para um lote de ${limit}. Seu saldo é ${balance} tokens.`,
         code: "INSUFFICIENT_TOKENS",
@@ -66,7 +67,7 @@ export async function POST(request: Request) {
         mode: "live",
         provider: "hunter",
         costPath: "internal",
-        tokenCost: internalLeads.length,
+        tokenCost: unlimitedTokens ? 0 : internalLeads.length,
         tokenBalance,
         leads: internalLeads.slice(0, limit),
       }, {
@@ -100,7 +101,7 @@ export async function POST(request: Request) {
       provider: internalLeads.length ? "hunter+fallback" : "fallback",
       costPath: internalLeads.length ? "hybrid" : "external",
       internalHits: internalLeads.length,
-      tokenCost: leads.length,
+      tokenCost: unlimitedTokens ? 0 : leads.length,
       tokenBalance,
       leads,
     }, {

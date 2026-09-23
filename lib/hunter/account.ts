@@ -9,6 +9,9 @@ export type HunterAccount = {
   focusMinutes: number;
   lofiEnabled: boolean;
   contactedToday: number;
+  planId: string;
+  planName: string;
+  unlimitedTokens: boolean;
 };
 
 export type TokenPackage = {
@@ -33,7 +36,7 @@ export async function loadHunterAccount(): Promise<HunterAccount | null> {
     const { supabase, user } = await clientAndUser();
     if (!supabase || !user) return null;
 
-    const { data, error } = await supabase.rpc("ensure_hunter_account");
+    const { data, error } = await supabase.rpc("get_hunter_account");
     if (error || !Array.isArray(data) || !data[0]) return null;
 
     const start = new Date();
@@ -53,6 +56,9 @@ export async function loadHunterAccount(): Promise<HunterAccount | null> {
       focusMinutes: Number(row.focus_minutes || 25),
       lofiEnabled: Boolean(row.lofi_enabled),
       contactedToday: Number(count || 0),
+      planId: String(row.plan_id || "free"),
+      planName: String(row.plan_name || "Free"),
+      unlimitedTokens: Boolean(row.unlimited_tokens),
     };
   } catch {
     return null;

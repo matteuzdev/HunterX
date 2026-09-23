@@ -519,9 +519,10 @@ export function HunterXApp() {
         view={view}
         onChange={setView}
         favorites={Object.keys(favorites).length}
-        searches={searches}
         exportsCount={exportLogs.length}
         tokens={account?.balance || 0}
+        unlimitedTokens={account?.unlimitedTokens || false}
+        planName={account?.planName || "Free"}
       />
 
       <main className="min-w-0 flex-1">
