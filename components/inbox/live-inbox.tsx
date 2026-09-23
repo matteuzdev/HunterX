@@ -421,49 +421,51 @@ export function LiveInbox({
   });
 
   return (
-    <section className="space-y-6">
-      {/* Cabeçalho no padrão HunterX */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="mb-2 text-[10px] font-black uppercase tracking-[.16em] text-blue-600">Mensagens WhatsApp</p>
-          <h1 className="text-3xl font-black tracking-[-.045em] text-slate-900">Caixa de Entrada</h1>
-          <p className="mt-2 text-sm text-slate-500">
-            Central de atendimento ao vivo, integração direta com o Pipeline e respostas rápidas com atalhos.
-          </p>
+    <>
+      <div className="relative flex h-full w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      {/* Coluna 1: Lista de Conversas e Filtros */}
+      <div className="flex h-full w-full flex-col border-r border-slate-200 md:w-80 lg:w-96 shrink-0">
+        {/* Barra Superior Compacta de Ações (Sem títulos externos) */}
+        <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-slate-900">Conversas</span>
+            <Badge className="bg-slate-200 text-[10px] text-slate-700 font-semibold">{conversations.length}</Badge>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <Button
+              onClick={() => setNewChatModalOpen(true)}
+              variant="secondary"
+              size="sm"
+              className="h-8 px-2.5 text-xs"
+              title="Nova Conversa"
+            >
+              <UserPlus className="mr-1 size-3.5" /> Nova
+            </Button>
+
+            <Button
+              onClick={() => setQrModalOpen(true)}
+              variant="primary"
+              size="sm"
+              className="h-8 px-2.5 text-xs"
+              title="Conectar WhatsApp"
+            >
+              <QrCode className="mr-1 size-3.5" /> Conectar
+            </Button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={() => setNewChatModalOpen(true)}
-            variant="secondary"
-          >
-            <UserPlus className="mr-1.5 size-4" /> Nova Conversa
-          </Button>
-
-          <Button
-            onClick={() => setQrModalOpen(true)}
-            variant="primary"
-          >
-            <QrCode className="mr-2 size-4" /> Conectar WhatsApp
-          </Button>
-        </div>
-      </div>
-
-      {/* Janela Principal de Mensagens */}
-      <Card className="flex min-h-[700px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        {/* Coluna 1: Lista de Conversas e Filtros */}
-        <div className="flex w-full flex-col border-r border-slate-200 md:w-80 lg:w-96">
-          <div className="border-b border-slate-100 p-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 size-4 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar conversa ou lead..."
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-4 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none"
-              />
-            </div>
+        <div className="border-b border-slate-100 p-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 size-4 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar conversa ou lead..."
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-4 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none"
+            />
+          </div>
 
             {/* Filtros de Status */}
             <div className="mt-3 flex gap-1 overflow-x-auto text-[11px]">
@@ -829,7 +831,7 @@ export function LiveInbox({
             </div>
           </div>
         )}
-      </Card>
+      </div>
 
       {/* Modal: Nova Conversa */}
       {newChatModalOpen && (
@@ -979,6 +981,6 @@ export function LiveInbox({
         open={qrModalOpen}
         onClose={() => setQrModalOpen(false)}
       />
-    </section>
+    </>
   );
 }

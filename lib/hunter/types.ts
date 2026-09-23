@@ -160,10 +160,17 @@ export type AIAgent = {
   tone: AgentTone;
   provider: AgentProvider;
   model: string;
+  temperature?: number; // 0.0 a 1.0
+  welcomeMessage?: string;
   systemPrompt: string;
+  rulesShouldDo?: string[];
+  rulesNeverDo?: string[];
+  enableKanbanTool?: boolean;
+  enableWebSearchTool?: boolean;
   knowledgeBase: AgentKnowledgeItem[];
   fallbackToHuman: boolean;
   handoffKeywords: string[];
+  handoffMessage?: string;
   isActive: boolean;
   assignedNiches: string[];
   createdAt: string;

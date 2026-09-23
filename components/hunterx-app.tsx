@@ -25,6 +25,7 @@ import { ProspectingFlowView } from "@/components/flows/prospecting-flow-view";
 import { AgentStudio } from "@/components/agents/agent-studio";
 import { AgentPlayground } from "@/components/agents/agent-playground";
 import type { AIAgent } from "@/lib/hunter/types";
+import { cn } from "@/lib/utils";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -554,7 +555,12 @@ export function HunterXApp() {
           </div>
         </header>
 
-        <div className="mx-auto w-full max-w-[1540px] p-4 md:p-7 xl:p-8">
+        <div className={cn(
+          "mx-auto w-full",
+          view === "inbox" || view === "agent-studio"
+            ? "h-[calc(100dvh-4rem)] max-w-full overflow-hidden p-2 md:p-3"
+            : "max-w-[1540px] p-4 md:p-7 xl:p-8"
+        )}>
           {view === "dashboard" && (
             <Dashboard searches={searches} leads={leads} history={history} onSearch={() => setView("search")} />
           )}
@@ -753,13 +759,7 @@ export function HunterXApp() {
           )}
 
           {view === "agent-studio" && (
-
-            <AgentStudio
-              onTestAgent={(agent) => {
-                setSelectedAgent(agent);
-                setView("agent-playground");
-              }}
-            />
+            <AgentStudio />
           )}
 
           {view === "agent-playground" && (
