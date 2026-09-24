@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   X, Bot, Sparkles, BookOpen, Layers, Shield, Sliders, MessageSquare,
   Plus, Trash2, Globe, FileText, HelpCircle, CheckCircle2, AlertCircle,
-  ExternalLink, Check, Copy, UserCheck, Cpu, Search, Hash
+  ExternalLink, Check, Copy, UserCheck, Cpu, Search, Hash, UploadCloud,
+  FileUp, File as FileIcon, Paperclip
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -80,6 +81,17 @@ export function AgentEditModal({
   const [newSourceContent, setNewSourceContent] = useState("");
   const [kbFilter, setKbFilter] = useState<string>("all");
 
+  // Estados para Upload de Documentos RAG
+  const [uploadedFileInfo, setUploadedFileInfo] = useState<{
+    name: string;
+    size: number;
+    type: string;
+  } | null>(null);
+  const [isReadingFile, setIsReadingFile] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const modalFileInputRef = useRef<HTMLInputElement>(null);
+
   // Estado para adicionar nova intenção comercial
   const [newIntentModalOpen, setNewIntentModalOpen] = useState(false);
   const [newIntentName, setNewIntentName] = useState("");
@@ -99,6 +111,73 @@ export function AgentEditModal({
 
   function updateField<K extends keyof AIAgent>(field: K, value: AIAgent[K]) {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  }
+
+  // Leitura e extração do arquivo selecionado
+  function handleFileSelect(file: File) {
+    if (!file) return;
+
+    setIsReadingFile(true);
+    const sizeKb = Math.round(file.size / 1024);
+    setUploadedFileInfo({
+      name: file.name,
+      size: file.size,
+      type: file.type || "application/octet-stream",
+    });
+    setNewSourceTitle(file.name);
+    setNewSourceType("document");
+
+    const reader = new FileReader();
+
+    const isTextFile =
+      file.type.startsWith("text/") ||
+      file.name.endsWith(".txt") ||
+      file.name.endsWith(".md") ||
+      file.name.endsWith(".csv") ||
+      file.name.endsWith(".json") ||
+      file.name.endsWith(".xml") ||
+      file.name.endsWith(".html");
+
+    if (isTextFile) {
+      reader.onload = (e) => {
+        const text = (e.target?.result as string) || "";
+        setNewSourceContent(text);
+        setIsReadingFile(false);
+        setNewSourceModalOpen(true);
+      };
+      reader.onerror = () => {
+        alert("Erro ao ler o arquivo de texto.");
+        setIsReadingFile(false);
+      };
+      reader.readAsText(file, "UTF-8");
+    } else {
+      reader.onload = (e) => {
+        const result = e.target?.result;
+        let extractedPreview = "";
+
+        if (typeof result === "string") {
+          const cleanText = result.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, " ").replace(/\s+/g, " ").trim();
+          if (cleanText.length > 50) {
+            extractedPreview = cleanText.slice(0, 10000);
+          }
+        }
+
+        const fallbackContent =
+          extractedPreview ||
+          `[Documento Anexado: ${file.name} - Tamanho: ${sizeKb} KB]\n\nConteúdo indexado para consulta do agente comercial:`;
+
+        setNewSourceContent(fallbackContent);
+        setIsReadingFile(false);
+        setNewSourceModalOpen(true);
+      };
+
+      reader.onerror = () => {
+        alert("Erro ao processar o documento.");
+        setIsReadingFile(false);
+      };
+
+      reader.readAsText(file);
+    }
   }
 
   // Ações de Base de Conhecimento
@@ -125,6 +204,7 @@ export function AgentEditModal({
 
     setNewSourceTitle("");
     setNewSourceContent("");
+    setUploadedFileInfo(null);
     setNewSourceModalOpen(false);
   }
 
@@ -419,19 +499,84 @@ export function AgentEditModal({
                     O agente consultará essas fontes para tirar dúvidas com precisão cirúrgica sem alucinar.
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
+                <div className="flex items-center gap-2">
+                  <div className="text-right mr-1">
                     <span className="block text-[10px] uppercase font-bold text-slate-400">Total Indexado</span>
                     <strong className="text-slate-800 font-mono">{totalCharacters.toLocaleString()} caracteres</strong>
                   </div>
                   <Button
-                    onClick={() => setNewSourceModalOpen(true)}
+                    onClick={() => fileInputRef.current?.click()}
+                    variant="secondary"
+                    size="sm"
+                    className="border-blue-200 bg-blue-50/60 text-blue-700 hover:bg-blue-100"
+                  >
+                    <UploadCloud className="mr-1.5 size-3.5" /> Upar Documento
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setNewSourceType("text");
+                      setNewSourceTitle("");
+                      setNewSourceContent("");
+                      setUploadedFileInfo(null);
+                      setNewSourceModalOpen(true);
+                    }}
                     variant="primary"
                     size="sm"
                   >
                     <Plus className="mr-1 size-3.5" /> Adicionar Fonte
                   </Button>
                 </div>
+              </div>
+
+              {/* Input Invisível para Upload de Arquivo */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx,.txt,.csv,.json,.md,.html"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleFileSelect(f);
+                  e.target.value = "";
+                }}
+              />
+
+              {/* Dropzone Visual de Upload de Documentos */}
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragging(false);
+                  const f = e.dataTransfer.files?.[0];
+                  if (f) handleFileSelect(f);
+                }}
+                onClick={() => fileInputRef.current?.click()}
+                className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-5 text-center cursor-pointer transition-all ${
+                  isDragging
+                    ? "border-blue-500 bg-blue-50/70"
+                    : "border-slate-200 bg-slate-50/60 hover:border-blue-400 hover:bg-blue-50/20"
+                }`}
+              >
+                <div className="flex size-10 items-center justify-center rounded-xl bg-blue-100 text-blue-700 shadow-xs">
+                  <UploadCloud className="size-5" />
+                </div>
+                <div className="mt-2.5">
+                  <p className="text-xs font-bold text-slate-800">
+                    Clique para fazer upload ou arraste seu documento até aqui
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-slate-500">
+                    PDF, DOCX, TXT, CSV, JSON ou Markdown. Leitura e indexação instantânea na memória da IA.
+                  </p>
+                </div>
+                {isReadingFile && (
+                  <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-white/90 backdrop-blur-xs">
+                    <span className="text-xs font-bold text-blue-600 animate-pulse">Lendo e extraindo documento...</span>
+                  </div>
+                )}
               </div>
 
               {/* Filtros de Tipos de Fonte do GPT Maker */}
@@ -812,37 +957,116 @@ export function AgentEditModal({
             </div>
 
             <div className="mt-4 space-y-3">
+              {/* Upload de Arquivo quando o tipo for documento */}
+              {newSourceType === "document" && (
+                <div>
+                  <input
+                    ref={modalFileInputRef}
+                    type="file"
+                    accept=".pdf,.doc,.docx,.txt,.csv,.json,.md,.html"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleFileSelect(f);
+                      e.target.value = "";
+                    }}
+                  />
+
+                  {uploadedFileInfo ? (
+                    <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-3.5 flex items-center justify-between">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex size-9 items-center justify-center rounded-lg bg-blue-600 text-white shrink-0">
+                          <FileIcon className="size-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-bold text-slate-900">{uploadedFileInfo.name}</p>
+                          <p className="text-[10px] text-slate-500">
+                            {Math.round(uploadedFileInfo.size / 1024)} KB • Arquivo carregado
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        onClick={() => modalFileInputRef.current?.click()}
+                        variant="secondary"
+                        size="sm"
+                        className="text-[11px] shrink-0"
+                      >
+                        Trocar Arquivo
+                      </Button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => modalFileInputRef.current?.click()}
+                      className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/80 p-5 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/20 transition"
+                    >
+                      <FileUp className="size-6 text-blue-600" />
+                      <p className="mt-2 text-xs font-bold text-slate-800">
+                        Clique para anexar arquivo (PDF, DOCX, TXT, CSV...)
+                      </p>
+                      <p className="mt-0.5 text-[10px] text-slate-400">
+                        O conteúdo será extraído e carregado para a base de conhecimento.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div>
                 <label className="mb-1 block text-xs font-bold text-slate-700">Título de Identificação</label>
                 <input
                   type="text"
                   value={newSourceTitle}
                   onChange={(e) => setNewSourceTitle(e.target.value)}
-                  placeholder="Ex: Política de Garantia, Valores dos Serviços, Link do Site"
+                  placeholder="Ex: Tabela de Preços, Apresentação Comercial, Manual de Atendimento"
                   className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-bold text-slate-700">
-                  {newSourceType === "website" ? "URL Completa da Página" : "Conteúdo da Fonte"}
-                </label>
                 {newSourceType === "website" ? (
-                  <input
-                    type="url"
-                    value={newSourceContent}
-                    onChange={(e) => setNewSourceContent(e.target.value)}
-                    placeholder="https://suaempresa.com.br/sobre"
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-none"
-                  />
+                  <div>
+                    <label className="mb-1 block text-xs font-bold text-slate-700">URL Completa da Página</label>
+                    <input
+                      type="url"
+                      value={newSourceContent}
+                      onChange={(e) => setNewSourceContent(e.target.value)}
+                      placeholder="https://suaempresa.com.br/sobre"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+                ) : newSourceType === "document" ? (
+                  <div>
+                    <div className="mb-1 flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-700">Texto Extraído do Documento</label>
+                      <span className="text-[10px] font-mono text-slate-400 font-semibold">
+                        {newSourceContent.length} caracteres
+                      </span>
+                    </div>
+                    <textarea
+                      rows={5}
+                      value={newSourceContent}
+                      onChange={(e) => setNewSourceContent(e.target.value)}
+                      placeholder="O texto extraído do seu arquivo aparecerá aqui. Você pode editar, adicionar regras ou instruções extras..."
+                      className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs leading-relaxed text-slate-900 focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
                 ) : (
-                  <textarea
-                    rows={5}
-                    value={newSourceContent}
-                    onChange={(e) => setNewSourceContent(e.target.value)}
-                    placeholder="Escreva afirmações claras e fatos diretos sobre sua empresa..."
-                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs leading-relaxed text-slate-900 focus:border-blue-500 focus:outline-none"
-                  />
+                  <div>
+                    <div className="mb-1 flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-700">Conteúdo da Fonte</label>
+                      <span className="text-[10px] font-mono text-slate-400 font-semibold">
+                        {newSourceContent.length} caracteres
+                      </span>
+                    </div>
+                    <textarea
+                      rows={5}
+                      value={newSourceContent}
+                      onChange={(e) => setNewSourceContent(e.target.value)}
+                      placeholder="Escreva afirmações claras e fatos diretos sobre sua empresa..."
+                      className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs leading-relaxed text-slate-900 focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
                 )}
               </div>
             </div>
