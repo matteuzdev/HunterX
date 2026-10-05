@@ -19,6 +19,7 @@ import { BulkWhatsAppPanel } from "@/components/bulk-whatsapp-panel";
 import { ExportsView } from "@/components/exports-view";
 import { FocusView } from "@/components/focus-view";
 import { TokensView } from "@/components/tokens-view";
+import { RevenueControl } from "@/components/revenue-control";
 import { AuthStatus } from "@/components/auth-status";
 import { LiveInbox } from "@/components/inbox/live-inbox";
 import { ProspectingFlowView } from "@/components/flows/prospecting-flow-view";
@@ -98,11 +99,12 @@ function exportCsv(leads: Lead[]) {
 }
 
 function Dashboard({
-  searches, leads, history, onSearch,
+  searches, leads, history, records, onSearch,
 }: {
   searches: number;
   leads: Lead[];
   history: HistoryItem[];
+  records: LeadCrmRecord[];
   onSearch: () => void;
 }) {
   const hot = leads.filter((lead) => lead.score >= 80).length;
@@ -111,6 +113,7 @@ function Dashboard({
 
   return (
     <div className="space-y-6">
+      <RevenueControl records={records} />
       <div className="flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
         <div>
           <p className="mb-2 text-[10px] font-bold uppercase tracking-[.16em] text-blue-600">Central de prospecção</p>
@@ -562,7 +565,7 @@ export function HunterXApp() {
             : "max-w-[1540px] p-4 md:p-7 xl:p-8"
         )}>
           {view === "dashboard" && (
-            <Dashboard searches={searches} leads={leads} history={history} onSearch={() => setView("search")} />
+            <Dashboard searches={searches} leads={leads} history={history} records={Object.values(crmRecords)} onSearch={() => setView("search")} />
           )}
 
           {view === "focus" && account && (
