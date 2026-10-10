@@ -21,11 +21,6 @@ import { FocusView } from "@/components/focus-view";
 import { TokensView } from "@/components/tokens-view";
 import { RevenueControl } from "@/components/revenue-control";
 import { AuthStatus } from "@/components/auth-status";
-import { LiveInbox } from "@/components/inbox/live-inbox";
-import { ProspectingFlowView } from "@/components/flows/prospecting-flow-view";
-import { AgentsCatalogView } from "@/components/agents/agents-catalog-view";
-import { AgentPlayground } from "@/components/agents/agent-playground";
-import type { AIAgent } from "@/lib/hunter/types";
 import { cn } from "@/lib/utils";
 
 import { Card } from "@/components/ui/card";
@@ -224,7 +219,6 @@ export function HunterXApp() {
   const [exportLogs, setExportLogs] = useState<ExportLog[]>([]);
   const [account, setAccount] = useState<HunterAccount | null>(null);
   const [tokenPackages, setTokenPackages] = useState<TokenPackage[]>([]);
-  const [selectedAgent, setSelectedAgent] = useState<AIAgent | undefined>(undefined);
 
 
   useEffect(() => {
@@ -523,10 +517,6 @@ export function HunterXApp() {
     exports: "Exportações",
     tokens: "Tokens",
     messages: "WhatsApp",
-    inbox: "Mensagens WhatsApp",
-    flows: "Automações",
-    "agent-studio": "Agentes de IA",
-    "agent-playground": "Simulador de IA",
     settings: "Configurações",
   };
 
@@ -560,9 +550,7 @@ export function HunterXApp() {
 
         <div className={cn(
           "mx-auto w-full",
-          view === "inbox" || view === "agent-studio"
-            ? "h-[calc(100dvh-4rem)] max-w-full overflow-hidden p-2 md:p-3"
-            : "max-w-[1540px] p-4 md:p-7 xl:p-8"
+          "max-w-[1540px] p-4 md:p-7 xl:p-8"
         )}>
           {view === "dashboard" && (
             <Dashboard searches={searches} leads={leads} history={history} records={Object.values(crmRecords)} onSearch={() => setView("search")} />
@@ -748,32 +736,6 @@ export function HunterXApp() {
                 ))}
               </div>
             </section>
-          )}
-
-          {view === "inbox" && (
-            <LiveInbox
-              leads={leads}
-              onOpenLead={(lead) => setSelectedLead(lead)}
-            />
-          )}
-
-          {view === "flows" && (
-            <ProspectingFlowView />
-          )}
-
-          {view === "agent-studio" && (
-            <AgentsCatalogView
-              onSelectAgentForTest={(agent) => {
-                setSelectedAgent(agent);
-                setView("agent-playground");
-              }}
-            />
-          )}
-
-          {view === "agent-playground" && (
-            <AgentPlayground
-              initialAgent={selectedAgent}
-            />
           )}
 
           {view === "settings" && (
