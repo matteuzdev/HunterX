@@ -2,8 +2,7 @@
 
 import {
   Clock3, Coins, Command, CreditCard, Crosshair, FileSpreadsheet, Gauge,
-  Heart, MessageSquareText, Search, Settings2, Sparkles, Workflow, BarChart3, Crown,
-  Bot, Play, Inbox
+  Heart, Search, Settings2, Sparkles, Workflow, BarChart3, Crown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,20 +18,12 @@ export type ViewName =
   | "exports"
   | "tokens"
   | "messages"
-  | "inbox"
-  | "flows"
-  | "agent-studio"
-  | "agent-playground"
   | "settings";
 
 const items = [
   { id: "dashboard" as const, label: "Visão geral", icon: Gauge },
   { id: "search" as const, label: "Buscar leads", icon: Search },
   { id: "pipeline" as const, label: "Pipeline", icon: Workflow },
-  { id: "inbox" as const, label: "Mensagens", icon: MessageSquareText },
-  { id: "flows" as const, label: "Automações", icon: Sparkles },
-  { id: "agent-studio" as const, label: "Agentes de IA", icon: Bot },
-  { id: "agent-playground" as const, label: "Simulador de IA", icon: Play },
   { id: "focus" as const, label: "Focus", icon: Crosshair },
   { id: "segments" as const, label: "Segmentos", icon: BarChart3 },
   { id: "history" as const, label: "Histórico", icon: Clock3 },

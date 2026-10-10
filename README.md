@@ -1,85 +1,35 @@
-# HunterX
+# HunterX — Lead & Opportunity Intelligence
 
-HunterX é um SaaS de inteligência comercial para descobrir negócios locais, identificar gaps de presença digital e priorizar oportunidades de prospecção.
+HunterX é uma ferramenta de inteligência comercial para **descobrir empresas, priorizar oportunidades e exportar leads qualificados**.
+
+## Escopo do produto
+- Descoberta de empresas por nicho e cidade (Apify Google Maps; Outscraper como alternativa).
+- Enriquecimento e identificação de lacunas de presença digital.
+- Opportunity Score explicável para priorização.
+- Histórico de buscas com recuperação de resultados salvos.
+- Favoritos, segmentos, exportação CSV e gerenciamento de tokens.
+- Acesso contextual ao contato da empresa (sem inbox ou automação de mensagens).
+
+## Fora do escopo
+- Inbox próprio de WhatsApp e conexão de mensageria.
+- Sequências de automação e construtores de fluxos.
+- Estúdio, orquestração e simulador de agentes de IA.
+
+A análise de oportunidades de **software sob medida** é uma evolução planejada, não uma funcionalidade já implementada. Sinais encontrados em fontes externas devem ser tratados como indícios e hipóteses, nunca como necessidade confirmada do lead.
 
 ## Stack
+- Next.js 16 / React 19 / TypeScript / Tailwind CSS 4
+- Supabase para identidade e persistência
+- Apify / Outscraper para descoberta
+- Vercel para hospedagem
 
-- Next.js 16 — App Router
-- React 19
-- TypeScript
-- Tailwind CSS 4
-- componentes no padrão shadcn/ui
-- Route Handlers do Next.js
-- Supabase SSR preparado para autenticação/persistência
-- Vercel
-
-## O que já funciona
-
-- Busca por nicho + cidade
-- até 20 leads por busca
-- Opportunity Score 0–100
-- Quente / Morno / Frio
-- prioridade Alta / Média / Baixa
-- filtros
-- favoritos
-- histórico
-- WhatsApp contextual
-- exportação CSV
-- modo demo
-- Apify Google Maps conectado como provider principal\n- Outscraper mantido como provider alternativo
-- enrichment de website
-- dashboard SaaS responsivo
-
-## Rodar
-
+## Desenvolvimento
 ```bash
 npm install
+npm run typecheck
+npm run build
 npm run dev
 ```
 
-## Dados reais
-
-```env
-DATA_PROVIDER=live
-OUTSCRAPER_API_KEY=sua_chave
-```
-
-## Supabase
-
-Quando habilitarmos autenticação e persistência:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
-```
-
-## Arquitetura
-
-```text
-app/
-  api/
-  globals.css
-  layout.tsx
-  page.tsx
-components/
-  hunterx-app.tsx
-  lead-table.tsx
-  metric-card.tsx
-  sidebar.tsx
-  ui/
-lib/
-  hunter/
-  supabase/
-```
-
-A interface antiga em HTML/CSS/JS puro foi substituída. O produto agora está estruturado para evoluir como SaaS.
-
-
-## Provider recomendado
-
-O HunterX usa o Actor `compass/crawler-google-places` da Apify para a descoberta inicial de empresas reais no Google Maps.
-
-Fluxo:
-`nicho + cidade → Apify Google Maps → normalização → Opportunity Score → abordagem`
-
-O enrichment profundo do site fica separado para não pagar crawling pesado em todos os leads.
+## Nota sobre a redução de escopo
+Esta etapa retira as telas de mensageria, automações e agentes da navegação e da aplicação principal. Os arquivos internos e rotas legados **ainda precisam ser inventariados e removidos com segurança** após análise de dependências, para evitar impactos nos recursos de busca, autenticação, histórico e exportação.
